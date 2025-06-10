@@ -1,33 +1,59 @@
 package com.example.vibecoding.application.post
 
+import com.example.vibecoding.domain.category.Category
 import com.example.vibecoding.domain.category.CategoryId
 import com.example.vibecoding.domain.category.CategoryRepository
-import com.example.vibecoding.domain.post.Post
-import com.example.vibecoding.domain.post.PostId
-import com.example.vibecoding.domain.post.PostRepository
+import com.example.vibecoding.domain.post.*
 import com.example.vibecoding.domain.user.User
 import com.example.vibecoding.domain.user.UserId
 import com.example.vibecoding.domain.user.UserRepository
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.mockk.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.io.ByteArrayInputStream
+import java.io.InputStream
 import java.time.LocalDateTime
 
 class PostServiceTest {
 
+    private lateinit var postService: PostService
     private lateinit var postRepository: PostRepository
     private lateinit var categoryRepository: CategoryRepository
     private lateinit var userRepository: UserRepository
-    private lateinit var postService: PostService
+    private lateinit var imageStorageService: ImageStorageService
+
+    private lateinit var testUser: User
+    private lateinit var testCategory: Category
 
     @BeforeEach
     fun setUp() {
-        postRepository = mockk(relaxed = true)
-        categoryRepository = mockk(relaxed = true)
-        userRepository = mockk(relaxed = true)
-        postService = PostService(postRepository, categoryRepository, userRepository)
+        postRepository = mockk()
+        categoryRepository = mockk()
+        userRepository = mockk()
+        imageStorageService = mockk()
+        
+        postService = PostService(postRepository, categoryRepository, userRepository, imageStorageService)
+
+        testUser = User(
+            id = UserId.generate(),
+            username = "testuser",
+            email = "test@example.com",
+            displayName = "Test User",
+            bio = "Test bio",
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now()
+        )
+
+        testCategory = Category(
+            id = CategoryId.generate(),
+            name = "Test Category",
+            description = "Test Description",
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now()
+        )
     }
 
     @Test
@@ -320,6 +346,196 @@ class PostServiceTest {
         verify { postRepository.existsById(postId) }
     }
 
+    @Test
+    fun `should create post with images successfully`() {
+        // Given
+        val title = "Test Post"
+        val content = "Test Content"
+        val imageRequest1 = createTestImageUploadRequest("image1.jpg")
+        val imageRequest2 = createTestImageUploadRequest("image2.jpg")
+        val images = listOf(imageRequest1, imageRequest2)
+
+        every { userRepository.findById(testUser.id) } returns testUser
+        every { categoryRepository.existsById(testCategory.id) } returns true
+        every { imageStorageService.storeImage(any(), any(), any()) } returnsMany listOf("path1.jpg", "path2.jpg")
+        every { postRepository.save(any()) } returnsArgument 0
+
+        // When
+        val result = postService.createPostWithImages(title, content, testUser.id, testCategory.id, images)
+
+        // Then
+        result.title shouldBe title
+        result.content shouldBe content
+        result.authorId shouldBe testUser.id
+        result.categoryId shouldBe testCategory.id
+        result.imageAttachments.size shouldBe 2
+        
+        verify { imageStorageService.storeImage("image1.jpg", "image/jpeg", any()) }
+        verify { imageStorageService.storeImage("image2.jpg", "image/jpeg", any()) }
+        verify { postRepository.save(any()) }
+    }
+
+    @Test
+    fun `should throw exception when creating post with too many images`() {
+        // Given
+        val title = "Test Post"
+        val content = "Test Content"
+        val images = listOf(
+            createTestImageUploadRequest("image1.jpg"),
+            createTestImageUploadRequest("image2.jpg"),
+            createTestImageUploadRequest("image3.jpg"),
+            createTestImageUploadRequest("image4.jpg") // One too many
+        )
+
+        every { userRepository.findById(testUser.id) } returns testUser
+        every { categoryRepository.existsById(testCategory.id) } returns true
+
+        // When & Then
+        shouldThrow<IllegalArgumentException> {
+            postService.createPostWithImages(title, content, testUser.id, testCategory.id, images)
+        }
+    }
+
+    @Test
+    fun `should attach image to existing post successfully`() {
+        // Given
+        val existingPost = createTestPost()
+        val imageRequest = createTestImageUploadRequest("new-image.jpg")
+        val storagePath = "path/to/new-image.jpg"
+
+        every { postRepository.findById(existingPost.id) } returns existingPost
+        every { imageStorageService.storeImage("new-image.jpg", "image/jpeg", any()) } returns storagePath
+        every { postRepository.save(any()) } returnsArgument 0
+
+        // When
+        val result = postService.attachImageToPost(existingPost.id, imageRequest)
+
+        // Then
+        result.imageAttachments.size shouldBe 1
+        result.imageAttachments[0].filename shouldBe "new-image.jpg"
+        result.imageAttachments[0].storagePath shouldBe storagePath
+        
+        verify { imageStorageService.storeImage("new-image.jpg", "image/jpeg", any()) }
+        verify { postRepository.save(any()) }
+    }
+
+    @Test
+    fun `should throw exception when attaching image to post with maximum images`() {
+        // Given
+        val postWithMaxImages = createTestPostWithMaxImages()
+        val imageRequest = createTestImageUploadRequest("extra-image.jpg")
+
+        every { postRepository.findById(postWithMaxImages.id) } returns postWithMaxImages
+
+        // When & Then
+        shouldThrow<ImageAttachmentException> {
+            postService.attachImageToPost(postWithMaxImages.id, imageRequest)
+        }
+    }
+
+    @Test
+    fun `should remove image from post successfully`() {
+        // Given
+        val imageAttachment = createTestImageAttachment("test-image.jpg")
+        val postWithImage = createTestPost().addImageAttachment(imageAttachment)
+
+        every { postRepository.findById(postWithImage.id) } returns postWithImage
+        every { imageStorageService.deleteImage(imageAttachment.storagePath) } just Runs
+        every { postRepository.save(any()) } returnsArgument 0
+
+        // When
+        val result = postService.removeImageFromPost(postWithImage.id, imageAttachment.id)
+
+        // Then
+        result.imageAttachments.size shouldBe 0
+        
+        verify { imageStorageService.deleteImage(imageAttachment.storagePath) }
+        verify { postRepository.save(any()) }
+    }
+
+    @Test
+    fun `should continue removing image from post even if storage deletion fails`() {
+        // Given
+        val imageAttachment = createTestImageAttachment("test-image.jpg")
+        val postWithImage = createTestPost().addImageAttachment(imageAttachment)
+
+        every { postRepository.findById(postWithImage.id) } returns postWithImage
+        every { imageStorageService.deleteImage(imageAttachment.storagePath) } throws ImageStorageException("Storage error")
+        every { postRepository.save(any()) } returnsArgument 0
+
+        // When
+        val result = postService.removeImageFromPost(postWithImage.id, imageAttachment.id)
+
+        // Then
+        result.imageAttachments.size shouldBe 0
+        
+        verify { imageStorageService.deleteImage(imageAttachment.storagePath) }
+        verify { postRepository.save(any()) }
+    }
+
+    @Test
+    fun `should throw exception when removing non-existent image`() {
+        // Given
+        val post = createTestPost()
+        val nonExistentImageId = ImageId.generate()
+
+        every { postRepository.findById(post.id) } returns post
+
+        // When & Then
+        shouldThrow<ImageAttachmentException> {
+            postService.removeImageFromPost(post.id, nonExistentImageId)
+        }
+    }
+
+    @Test
+    fun `should get post image successfully`() {
+        // Given
+        val imageAttachment = createTestImageAttachment("test-image.jpg")
+        val postWithImage = createTestPost().addImageAttachment(imageAttachment)
+
+        every { postRepository.findById(postWithImage.id) } returns postWithImage
+
+        // When
+        val result = postService.getPostImage(postWithImage.id, imageAttachment.id)
+
+        // Then
+        result shouldBe imageAttachment
+    }
+
+    @Test
+    fun `should get post image data successfully`() {
+        // Given
+        val imageAttachment = createTestImageAttachment("test-image.jpg")
+        val postWithImage = createTestPost().addImageAttachment(imageAttachment)
+        val imageData = ByteArrayInputStream("image data".toByteArray())
+
+        every { postRepository.findById(postWithImage.id) } returns postWithImage
+        every { imageStorageService.retrieveImage(imageAttachment.storagePath) } returns imageData
+
+        // When
+        val result = postService.getPostImageData(postWithImage.id, imageAttachment.id)
+
+        // Then
+        result shouldBe imageData
+        
+        verify { imageStorageService.retrieveImage(imageAttachment.storagePath) }
+    }
+
+    @Test
+    fun `should throw exception when storage fails during image attachment`() {
+        // Given
+        val existingPost = createTestPost()
+        val imageRequest = createTestImageUploadRequest("failing-image.jpg")
+
+        every { postRepository.findById(existingPost.id) } returns existingPost
+        every { imageStorageService.storeImage(any(), any(), any()) } throws ImageStorageException("Storage failed")
+
+        // When & Then
+        shouldThrow<ImageAttachmentException> {
+            postService.attachImageToPost(existingPost.id, imageRequest)
+        }
+    }
+
     private fun createTestPost(id: PostId, title: String, content: String, authorId: UserId, categoryId: CategoryId): Post {
         val now = LocalDateTime.now()
         return Post(
@@ -340,10 +556,52 @@ class PostServiceTest {
             username = username,
             email = email,
             displayName = "Test User",
-            bio = null,
+            bio = "Test bio",
             createdAt = now,
             updatedAt = now
         )
     }
-}
 
+    private fun createTestImageUploadRequest(filename: String): ImageUploadRequest {
+        return ImageUploadRequest(
+            filename = filename,
+            contentType = "image/jpeg",
+            fileSizeBytes = 1024L,
+            inputStream = ByteArrayInputStream("fake image data".toByteArray())
+        )
+    }
+
+    private fun createTestImageAttachment(filename: String): ImageAttachment {
+        return ImageAttachment.create(
+            filename = filename,
+            storagePath = "test/path/$filename",
+            contentType = "image/jpeg",
+            fileSizeBytes = 1024L
+        )
+    }
+
+    private fun createTestPost(): Post {
+        val now = LocalDateTime.now()
+        return Post(
+            id = PostId.generate(),
+            title = "Test Post",
+            content = "Test Content",
+            authorId = testUser.id,
+            categoryId = testCategory.id,
+            createdAt = now,
+            updatedAt = now
+        )
+    }
+
+    private fun createTestPostWithMaxImages(): Post {
+        val post = createTestPost()
+        val image1 = createTestImageAttachment("image1.jpg")
+        val image2 = createTestImageAttachment("image2.jpg")
+        val image3 = createTestImageAttachment("image3.jpg")
+        
+        return post
+            .addImageAttachment(image1)
+            .addImageAttachment(image2)
+            .addImageAttachment(image3)
+    }
+}
