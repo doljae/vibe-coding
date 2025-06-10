@@ -1,0 +1,81 @@
+###
+# Quick API Test Script
+# 
+# This file contains a streamlined set of API tests for quick verification
+# Execute these requests in order to test the basic functionality
+###
+
+@baseUrl = http://localhost:8080
+
+### 1. Create a category
+# @name createCategory
+POST {{baseUrl}}/api/categories
+Content-Type: application/json
+
+{
+  "name": "Technology",
+  "description": "Technology related posts"
+}
+
+### 2. Create a user
+# @name createUser
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "email": "test@example.com",
+  "displayName": "Test User",
+  "bio": "A test user for API testing"
+}
+
+### 3. Create a post
+# @name createPost
+POST {{baseUrl}}/api/posts
+Content-Type: application/json
+
+{
+  "title": "My First Blog Post",
+  "content": "This is the content of my first blog post. It's a simple test to verify that the API is working correctly.",
+  "authorId": "{{createUser.response.body.id}}",
+  "categoryId": "{{createCategory.response.body.id}}"
+}
+
+### 4. Get all posts
+GET {{baseUrl}}/api/posts
+Accept: application/json
+
+### 5. Get the specific post
+GET {{baseUrl}}/api/posts/{{createPost.response.body.id}}
+Accept: application/json
+
+### 6. Get posts by category
+GET {{baseUrl}}/api/posts/category/{{createCategory.response.body.id}}
+Accept: application/json
+
+### 7. Get user's posts
+GET {{baseUrl}}/api/users/{{createUser.response.body.id}}/posts
+Accept: application/json
+
+### 8. Search posts by title
+GET {{baseUrl}}/api/posts/search?title=First
+Accept: application/json
+
+### 9. Check username availability
+GET {{baseUrl}}/api/users/check-username?username=newuser
+Accept: application/json
+
+### 10. Update the post
+PUT {{baseUrl}}/api/posts/{{createPost.response.body.id}}
+Content-Type: application/json
+
+{
+  "title": "My Updated Blog Post",
+  "content": "This is the updated content of my blog post. The API update functionality is working correctly!",
+  "categoryId": "{{createCategory.response.body.id}}"
+}
+
+### 11. Verify the update
+GET {{baseUrl}}/api/posts/{{createPost.response.body.id}}
+Accept: application/json
+
