@@ -1,0 +1,333 @@
+package com.example.vibecoding.presentation.controller
+
+import com.example.vibecoding.application.category.CategoryService
+import com.example.vibecoding.application.post.ImageUploadRequest
+import com.example.vibecoding.application.post.PostService
+import com.example.vibecoding.application.user.UserService
+import com.example.vibecoding.domain.category.CategoryId
+import com.example.vibecoding.domain.post.ImageId
+import com.example.vibecoding.domain.post.PostId
+import com.example.vibecoding.domain.user.UserId
+import com.example.vibecoding.presentation.dto.*
+import jakarta.validation.Valid
+import org.springframework.core.io.InputStreamResource
+import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.*
+import org.springframework.web.multipart.MultipartFile
+
+/**
+ * REST controller for post management operations
+ */
+@RestController
+@RequestMapping("/api/posts")
+class PostController(
+    private val postService: PostService,
+    private val userService: UserService,
+    private val categoryService: CategoryService
+) {
+
+    /**
+     * Get all posts
+     */
+    @GetMapping
+    fun getAllPosts(): ResponseEntity<List<PostSummaryResponse>> {
+        val posts = postService.getAllPosts()
+        val response = posts.map { post ->
+            val author = userService.getUserById(post.authorId)
+            val category = categoryService.getCategoryById(post.categoryId)
+            PostSummaryResponse(
+                id = post.id.value.toString(),
+                title = post.title,
+                author = UserSummaryResponse.from(author),
+                category = CategorySummaryResponse.from(category),
+                imageCount = post.getImageAttachmentCount(),
+                createdAt = post.createdAt,
+                updatedAt = post.updatedAt
+            )
+        }
+        return ResponseEntity.ok(response)
+    }
+
+    /**
+     * Get post by ID
+     */
+    @GetMapping("/{id}")
+    fun getPostById(@PathVariable id: String): ResponseEntity<PostResponse> {
+        val postId = PostId.from(id)
+        val post = postService.getPostById(postId)
+        val author = userService.getUserById(post.authorId)
+        val category = categoryService.getCategoryById(post.categoryId)
+        
+        val response = PostResponse(
+            id = post.id.value.toString(),
+            title = post.title,
+            content = post.content,
+            author = UserSummaryResponse.from(author),
+            category = CategorySummaryResponse.from(category),
+            imageAttachments = post.imageAttachments.map { 
+                ImageAttachmentResponse.from(it, post.id.value.toString()) 
+            },
+            createdAt = post.createdAt,
+            updatedAt = post.updatedAt
+        )
+        return ResponseEntity.ok(response)
+    }
+
+    /**
+     * Create a new post
+     */
+    @PostMapping
+    fun createPost(@Valid @RequestBody request: CreatePostRequest): ResponseEntity<PostResponse> {
+        val authorId = UserId.from(request.authorId)
+        val categoryId = CategoryId.from(request.categoryId)
+        
+        val post = postService.createPost(
+            title = request.title,
+            content = request.content,
+            authorId = authorId,
+            categoryId = categoryId
+        )
+        
+        val author = userService.getUserById(post.authorId)
+        val category = categoryService.getCategoryById(post.categoryId)
+        
+        val response = PostResponse(
+            id = post.id.value.toString(),
+            title = post.title,
+            content = post.content,
+            author = UserSummaryResponse.from(author),
+            category = CategorySummaryResponse.from(category),
+            imageAttachments = emptyList(),
+            createdAt = post.createdAt,
+            updatedAt = post.updatedAt
+        )
+        return ResponseEntity.status(HttpStatus.CREATED).body(response)
+    }
+
+    /**
+     * Create a new post with images
+     */
+    @PostMapping(consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    fun createPostWithImages(
+        @RequestParam title: String,
+        @RequestParam content: String,
+        @RequestParam authorId: String,
+        @RequestParam categoryId: String,
+        @RequestParam(required = false) images: List<MultipartFile>?
+    ): ResponseEntity<PostResponse> {
+        val authorIdValue = UserId.from(authorId)
+        val categoryIdValue = CategoryId.from(categoryId)
+        
+        val imageRequests = images?.map { file ->
+            ImageUploadRequest(
+                filename = file.originalFilename ?: "unknown",
+                contentType = file.contentType ?: "application/octet-stream",
+                fileSizeBytes = file.size,
+                inputStream = file.inputStream
+            )
+        } ?: emptyList()
+        
+        val post = if (imageRequests.isNotEmpty()) {
+            postService.createPostWithImages(
+                title = title,
+                content = content,
+                authorId = authorIdValue,
+                categoryId = categoryIdValue,
+                images = imageRequests
+            )
+        } else {
+            postService.createPost(
+                title = title,
+                content = content,
+                authorId = authorIdValue,
+                categoryId = categoryIdValue
+            )
+        }
+        
+        val author = userService.getUserById(post.authorId)
+        val category = categoryService.getCategoryById(post.categoryId)
+        
+        val response = PostResponse(
+            id = post.id.value.toString(),
+            title = post.title,
+            content = post.content,
+            author = UserSummaryResponse.from(author),
+            category = CategorySummaryResponse.from(category),
+            imageAttachments = post.imageAttachments.map { 
+                ImageAttachmentResponse.from(it, post.id.value.toString()) 
+            },
+            createdAt = post.createdAt,
+            updatedAt = post.updatedAt
+        )
+        return ResponseEntity.status(HttpStatus.CREATED).body(response)
+    }
+
+    /**
+     * Update an existing post
+     */
+    @PutMapping("/{id}")
+    fun updatePost(
+        @PathVariable id: String,
+        @Valid @RequestBody request: UpdatePostRequest
+    ): ResponseEntity<PostResponse> {
+        val postId = PostId.from(id)
+        val categoryId = request.categoryId?.let { CategoryId.from(it) }
+        
+        val post = postService.updatePost(
+            id = postId,
+            title = request.title,
+            content = request.content,
+            categoryId = categoryId
+        )
+        
+        val author = userService.getUserById(post.authorId)
+        val category = categoryService.getCategoryById(post.categoryId)
+        
+        val response = PostResponse(
+            id = post.id.value.toString(),
+            title = post.title,
+            content = post.content,
+            author = UserSummaryResponse.from(author),
+            category = CategorySummaryResponse.from(category),
+            imageAttachments = post.imageAttachments.map { 
+                ImageAttachmentResponse.from(it, post.id.value.toString()) 
+            },
+            createdAt = post.createdAt,
+            updatedAt = post.updatedAt
+        )
+        return ResponseEntity.ok(response)
+    }
+
+    /**
+     * Delete a post
+     */
+    @DeleteMapping("/{id}")
+    fun deletePost(@PathVariable id: String): ResponseEntity<Void> {
+        val postId = PostId.from(id)
+        postService.deletePost(postId)
+        return ResponseEntity.noContent().build()
+    }
+
+    /**
+     * Add image to post
+     */
+    @PostMapping("/{id}/images", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    fun addImageToPost(
+        @PathVariable id: String,
+        @RequestParam("image") image: MultipartFile
+    ): ResponseEntity<ImageAttachmentResponse> {
+        val postId = PostId.from(id)
+        
+        val imageRequest = ImageUploadRequest(
+            filename = image.originalFilename ?: "unknown",
+            contentType = image.contentType ?: "application/octet-stream",
+            fileSizeBytes = image.size,
+            inputStream = image.inputStream
+        )
+        
+        val updatedPost = postService.attachImageToPost(postId, imageRequest)
+        val newImage = updatedPost.imageAttachments.last()
+        
+        val response = ImageAttachmentResponse.from(newImage, postId.value.toString())
+        return ResponseEntity.status(HttpStatus.CREATED).body(response)
+    }
+
+    /**
+     * Remove image from post
+     */
+    @DeleteMapping("/{id}/images/{imageId}")
+    fun removeImageFromPost(
+        @PathVariable id: String,
+        @PathVariable imageId: String
+    ): ResponseEntity<Void> {
+        val postId = PostId.from(id)
+        val imageIdValue = ImageId.from(imageId)
+        
+        postService.removeImageFromPost(postId, imageIdValue)
+        return ResponseEntity.noContent().build()
+    }
+
+    /**
+     * Download image from post
+     */
+    @GetMapping("/{id}/images/{imageId}")
+    fun downloadImage(
+        @PathVariable id: String,
+        @PathVariable imageId: String
+    ): ResponseEntity<InputStreamResource> {
+        val postId = PostId.from(id)
+        val imageIdValue = ImageId.from(imageId)
+        
+        val imageAttachment = postService.getPostImage(postId, imageIdValue)
+        val imageData = postService.getPostImageData(postId, imageIdValue)
+        
+        val headers = HttpHeaders()
+        headers.contentType = MediaType.parseMediaType(imageAttachment.contentType)
+        headers.contentLength = imageAttachment.fileSizeBytes
+        headers.setContentDispositionFormData("attachment", imageAttachment.filename)
+        
+        return ResponseEntity.ok()
+            .headers(headers)
+            .body(InputStreamResource(imageData))
+    }
+
+    /**
+     * Search posts
+     */
+    @GetMapping("/search")
+    fun searchPosts(
+        @RequestParam(required = false) title: String?,
+        @RequestParam(required = false) authorId: String?,
+        @RequestParam(required = false) categoryId: String?
+    ): ResponseEntity<List<PostSummaryResponse>> {
+        val posts = when {
+            title != null -> postService.searchPostsByTitle(title)
+            authorId != null -> postService.getPostsByAuthor(UserId.from(authorId))
+            categoryId != null -> postService.getPostsByCategory(CategoryId.from(categoryId))
+            else -> postService.getAllPosts()
+        }
+        
+        val response = posts.map { post ->
+            val author = userService.getUserById(post.authorId)
+            val category = categoryService.getCategoryById(post.categoryId)
+            PostSummaryResponse(
+                id = post.id.value.toString(),
+                title = post.title,
+                author = UserSummaryResponse.from(author),
+                category = CategorySummaryResponse.from(category),
+                imageCount = post.getImageAttachmentCount(),
+                createdAt = post.createdAt,
+                updatedAt = post.updatedAt
+            )
+        }
+        return ResponseEntity.ok(response)
+    }
+
+    /**
+     * Get posts by category
+     */
+    @GetMapping("/category/{categoryId}")
+    fun getPostsByCategory(@PathVariable categoryId: String): ResponseEntity<List<PostSummaryResponse>> {
+        val categoryIdValue = CategoryId.from(categoryId)
+        val posts = postService.getPostsByCategory(categoryIdValue)
+        val category = categoryService.getCategoryById(categoryIdValue)
+        
+        val response = posts.map { post ->
+            val author = userService.getUserById(post.authorId)
+            PostSummaryResponse(
+                id = post.id.value.toString(),
+                title = post.title,
+                author = UserSummaryResponse.from(author),
+                category = CategorySummaryResponse.from(category),
+                imageCount = post.getImageAttachmentCount(),
+                createdAt = post.createdAt,
+                updatedAt = post.updatedAt
+            )
+        }
+        return ResponseEntity.ok(response)
+    }
+}
+
