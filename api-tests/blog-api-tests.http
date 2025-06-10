@@ -1,0 +1,432 @@
+###
+# Blog Service REST API Test Scripts
+# 
+# This file contains comprehensive HTTP requests for testing all blog service APIs
+# Make sure the application is running on http://localhost:8080 before executing these requests
+#
+# Usage:
+# 1. Start the Spring Boot application: ./gradlew bootRun
+# 2. Execute requests in your IDE (IntelliJ IDEA, VS Code with REST Client extension)
+# 3. Replace {{baseUrl}} with http://localhost:8080 if your IDE doesn't support variables
+###
+
+@baseUrl = http://localhost:8080
+
+###############################################################################
+# CATEGORY API TESTS
+###############################################################################
+
+### Get all categories (should be empty initially)
+GET {{baseUrl}}/api/categories
+Accept: application/json
+
+### Create Technology category
+POST {{baseUrl}}/api/categories
+Content-Type: application/json
+
+{
+  "name": "Technology",
+  "description": "Posts about technology, programming, and software development"
+}
+
+### Create Science category
+POST {{baseUrl}}/api/categories
+Content-Type: application/json
+
+{
+  "name": "Science",
+  "description": "Posts about scientific discoveries and research"
+}
+
+### Create Lifestyle category
+POST {{baseUrl}}/api/categories
+Content-Type: application/json
+
+{
+  "name": "Lifestyle",
+  "description": "Posts about lifestyle, health, and personal development"
+}
+
+### Get all categories (should now show 3 categories)
+GET {{baseUrl}}/api/categories
+Accept: application/json
+
+### Get specific category by ID (replace with actual ID from previous response)
+GET {{baseUrl}}/api/categories/{{categoryId}}
+Accept: application/json
+
+### Search category by name
+GET {{baseUrl}}/api/categories/search?name=Technology
+Accept: application/json
+
+### Update Technology category
+PUT {{baseUrl}}/api/categories/{{categoryId}}
+Content-Type: application/json
+
+{
+  "name": "Technology & Programming",
+  "description": "Posts about technology, programming, software development, and IT trends"
+}
+
+### Try to create duplicate category (should fail)
+POST {{baseUrl}}/api/categories
+Content-Type: application/json
+
+{
+  "name": "Technology & Programming",
+  "description": "Duplicate category test"
+}
+
+### Try to create category with invalid data (should fail)
+POST {{baseUrl}}/api/categories
+Content-Type: application/json
+
+{
+  "name": "",
+  "description": "Invalid category with empty name"
+}
+
+###############################################################################
+# USER API TESTS
+###############################################################################
+
+### Get all users (should be empty initially)
+GET {{baseUrl}}/api/users
+Accept: application/json
+
+### Create first user
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "username": "johndoe",
+  "email": "john.doe@example.com",
+  "displayName": "John Doe",
+  "bio": "Software developer passionate about clean code and best practices"
+}
+
+### Create second user
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "username": "janesmith",
+  "email": "jane.smith@example.com",
+  "displayName": "Jane Smith",
+  "bio": "Data scientist and machine learning enthusiast"
+}
+
+### Create third user
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "username": "alexchen",
+  "email": "alex.chen@example.com",
+  "displayName": "Alex Chen",
+  "bio": "Full-stack developer and tech blogger"
+}
+
+### Get all users (should now show 3 users)
+GET {{baseUrl}}/api/users
+Accept: application/json
+
+### Get specific user by ID (replace with actual ID from previous response)
+GET {{baseUrl}}/api/users/{{userId}}
+Accept: application/json
+
+### Search user by username
+GET {{baseUrl}}/api/users/search?username=johndoe
+Accept: application/json
+
+### Check username availability (should be false for existing user)
+GET {{baseUrl}}/api/users/check-username?username=johndoe
+Accept: application/json
+
+### Check username availability (should be true for new username)
+GET {{baseUrl}}/api/users/check-username?username=newuser123
+Accept: application/json
+
+### Check email availability (should be false for existing email)
+GET {{baseUrl}}/api/users/check-email?email=john.doe@example.com
+Accept: application/json
+
+### Check email availability (should be true for new email)
+GET {{baseUrl}}/api/users/check-email?email=newuser@example.com
+Accept: application/json
+
+### Update user information
+PUT {{baseUrl}}/api/users/{{userId}}
+Content-Type: application/json
+
+{
+  "displayName": "John Doe Jr.",
+  "email": "john.doe.jr@example.com",
+  "bio": "Senior software developer with 10+ years of experience in Java and Spring"
+}
+
+### Try to create user with invalid data (should fail)
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "username": "ab",
+  "email": "invalid-email",
+  "displayName": "Test User"
+}
+
+### Try to create user with duplicate username (should fail)
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "username": "johndoe",
+  "email": "different@example.com",
+  "displayName": "Different User"
+}
+
+###############################################################################
+# POST API TESTS
+###############################################################################
+
+### Get all posts (should be empty initially)
+GET {{baseUrl}}/api/posts
+Accept: application/json
+
+### Create first post
+POST {{baseUrl}}/api/posts
+Content-Type: application/json
+
+{
+  "title": "Getting Started with Spring Boot",
+  "content": "Spring Boot is a powerful framework that makes it easy to create stand-alone, production-grade Spring-based applications. In this post, we'll explore the basics of Spring Boot and how to get started with your first application.\n\nKey features of Spring Boot:\n- Auto-configuration\n- Embedded servers\n- Production-ready features\n- Easy dependency management\n\nLet's dive into creating your first Spring Boot application...",
+  "authorId": "{{userId}}",
+  "categoryId": "{{categoryId}}"
+}
+
+### Create second post
+POST {{baseUrl}}/api/posts
+Content-Type: application/json
+
+{
+  "title": "Understanding Machine Learning Algorithms",
+  "content": "Machine learning has revolutionized how we approach data analysis and prediction. In this comprehensive guide, we'll explore the most important machine learning algorithms and their applications.\n\nTypes of Machine Learning:\n1. Supervised Learning\n2. Unsupervised Learning\n3. Reinforcement Learning\n\nEach type has its own use cases and algorithms...",
+  "authorId": "{{userId2}}",
+  "categoryId": "{{categoryId2}}"
+}
+
+### Create third post
+POST {{baseUrl}}/api/posts
+Content-Type: application/json
+
+{
+  "title": "Building Healthy Habits for Developers",
+  "content": "As developers, we often spend long hours in front of computers, which can take a toll on our physical and mental health. Here are some essential habits that can help maintain a healthy lifestyle while pursuing a career in tech.\n\n1. Regular Exercise\n2. Proper Ergonomics\n3. Taking Breaks\n4. Healthy Eating\n5. Good Sleep Hygiene\n\nLet's explore each of these in detail...",
+  "authorId": "{{userId3}}",
+  "categoryId": "{{categoryId3}}"
+}
+
+### Get all posts (should now show 3 posts)
+GET {{baseUrl}}/api/posts
+Accept: application/json
+
+### Get specific post by ID (replace with actual ID from previous response)
+GET {{baseUrl}}/api/posts/{{postId}}
+Accept: application/json
+
+### Search posts by title
+GET {{baseUrl}}/api/posts/search?title=Spring
+Accept: application/json
+
+### Get posts by author
+GET {{baseUrl}}/api/posts/search?authorId={{userId}}
+Accept: application/json
+
+### Get posts by category
+GET {{baseUrl}}/api/posts/category/{{categoryId}}
+Accept: application/json
+
+### Get posts by specific user
+GET {{baseUrl}}/api/users/{{userId}}/posts
+Accept: application/json
+
+### Update post
+PUT {{baseUrl}}/api/posts/{{postId}}
+Content-Type: application/json
+
+{
+  "title": "Getting Started with Spring Boot 3.0",
+  "content": "Spring Boot 3.0 brings exciting new features and improvements. This updated guide covers everything you need to know about the latest version.\n\nWhat's new in Spring Boot 3.0:\n- Java 17 baseline\n- Native compilation support\n- Improved observability\n- Enhanced security features\n\nLet's explore these new features in detail...",
+  "categoryId": "{{categoryId}}"
+}
+
+### Try to create post with invalid data (should fail)
+POST {{baseUrl}}/api/posts
+Content-Type: application/json
+
+{
+  "title": "",
+  "content": "Post with empty title",
+  "authorId": "invalid-uuid",
+  "categoryId": "invalid-uuid"
+}
+
+###############################################################################
+# IMAGE UPLOAD TESTS (Multipart Form Data)
+###############################################################################
+
+### Create post with image (multipart form data)
+### Note: You'll need to create a sample image file for this test
+POST {{baseUrl}}/api/posts
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="title"
+
+Spring Boot Architecture Diagram
+--boundary
+Content-Disposition: form-data; name="content"
+
+This post includes a visual representation of Spring Boot architecture. The diagram shows how different components interact with each other.
+--boundary
+Content-Disposition: form-data; name="authorId"
+
+{{userId}}
+--boundary
+Content-Disposition: form-data; name="categoryId"
+
+{{categoryId}}
+--boundary
+Content-Disposition: form-data; name="images"; filename="spring-boot-architecture.png"
+Content-Type: image/png
+
+< ./sample-images/spring-boot-architecture.png
+--boundary--
+
+### Add image to existing post
+### Note: You'll need to create a sample image file for this test
+POST {{baseUrl}}/api/posts/{{postId}}/images
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="image"; filename="code-example.png"
+Content-Type: image/png
+
+< ./sample-images/code-example.png
+--boundary--
+
+### Download image from post
+GET {{baseUrl}}/api/posts/{{postId}}/images/{{imageId}}
+Accept: image/*
+
+### Remove image from post
+DELETE {{baseUrl}}/api/posts/{{postId}}/images/{{imageId}}
+
+###############################################################################
+# ERROR HANDLING TESTS
+###############################################################################
+
+### Test 404 - Non-existent category
+GET {{baseUrl}}/api/categories/00000000-0000-0000-0000-000000000000
+Accept: application/json
+
+### Test 404 - Non-existent user
+GET {{baseUrl}}/api/users/00000000-0000-0000-0000-000000000000
+Accept: application/json
+
+### Test 404 - Non-existent post
+GET {{baseUrl}}/api/posts/00000000-0000-0000-0000-000000000000
+Accept: application/json
+
+### Test 400 - Invalid UUID format
+GET {{baseUrl}}/api/categories/invalid-uuid
+Accept: application/json
+
+### Test 404 - Search for non-existent category
+GET {{baseUrl}}/api/categories/search?name=NonExistentCategory
+Accept: application/json
+
+### Test 400 - Search for non-existent user
+GET {{baseUrl}}/api/users/search?username=nonexistentuser
+Accept: application/json
+
+###############################################################################
+# CLEANUP TESTS (DELETE OPERATIONS)
+###############################################################################
+
+### Delete a post
+DELETE {{baseUrl}}/api/posts/{{postId}}
+
+### Delete a user
+DELETE {{baseUrl}}/api/users/{{userId}}
+
+### Try to delete category with posts (should fail if posts exist)
+DELETE {{baseUrl}}/api/categories/{{categoryId}}
+
+### Delete category (should work if no posts reference it)
+DELETE {{baseUrl}}/api/categories/{{categoryId}}
+
+###############################################################################
+# WORKFLOW TESTS
+###############################################################################
+
+### Complete workflow: Create category -> Create user -> Create post -> Update post -> Delete post
+### This demonstrates a typical blog creation workflow
+
+### Step 1: Create a new category for the workflow
+POST {{baseUrl}}/api/categories
+Content-Type: application/json
+
+{
+  "name": "Tutorial",
+  "description": "Step-by-step tutorials and guides"
+}
+
+### Step 2: Create a new user for the workflow
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "username": "tutorialauthor",
+  "email": "tutorial@example.com",
+  "displayName": "Tutorial Author",
+  "bio": "Creating helpful tutorials for developers"
+}
+
+### Step 3: Create a new post using the category and user from above
+POST {{baseUrl}}/api/posts
+Content-Type: application/json
+
+{
+  "title": "Complete REST API Testing Guide",
+  "content": "This tutorial demonstrates how to test REST APIs using HTTP scripts. We'll cover all the essential operations and best practices for API testing.",
+  "authorId": "{{workflowUserId}}",
+  "categoryId": "{{workflowCategoryId}}"
+}
+
+### Step 4: Update the post with additional content
+PUT {{baseUrl}}/api/posts/{{workflowPostId}}
+Content-Type: application/json
+
+{
+  "title": "Complete REST API Testing Guide - Updated",
+  "content": "This comprehensive tutorial demonstrates how to test REST APIs using HTTP scripts. We'll cover all the essential operations, best practices, and common pitfalls to avoid when testing APIs.\n\nUpdated with new examples and troubleshooting tips!",
+  "categoryId": "{{workflowCategoryId}}"
+}
+
+### Step 5: Verify the workflow by getting the updated post
+GET {{baseUrl}}/api/posts/{{workflowPostId}}
+Accept: application/json
+
+###############################################################################
+# NOTES FOR USAGE
+###############################################################################
+
+# 1. Replace {{variableName}} placeholders with actual IDs from API responses
+# 2. For image upload tests, create a 'sample-images' directory with test images
+# 3. Execute requests in sequence for proper workflow testing
+# 4. Some requests depend on previous requests (e.g., updating requires creating first)
+# 5. Use your IDE's HTTP client features to save variables between requests
+# 6. Monitor the application logs to see the API calls being processed
+# 7. Check the Swagger UI at http://localhost:8080/swagger-ui.html for API documentation
+

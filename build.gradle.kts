@@ -24,6 +24,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-webflux") // For WebTestClient
     testImplementation("io.mockk:mockk:1.13.8")
     testImplementation("io.kotest:kotest-assertions-core:5.8.0")
     testImplementation("org.jetbrains.kotlin:kotlin-test")
