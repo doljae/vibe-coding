@@ -1,6 +1,7 @@
 package com.example.vibecoding.domain.post
 
 import com.example.vibecoding.domain.category.CategoryId
+import com.example.vibecoding.domain.user.UserId
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -15,6 +16,7 @@ class PostTest {
         val id = PostId.generate()
         val title = "My First Post"
         val content = "This is the content of my first post"
+        val authorId = UserId.generate()
         val categoryId = CategoryId.generate()
         val now = LocalDateTime.now()
 
@@ -23,6 +25,7 @@ class PostTest {
             id = id,
             title = title,
             content = content,
+            authorId = authorId,
             categoryId = categoryId,
             createdAt = now,
             updatedAt = now
@@ -32,6 +35,7 @@ class PostTest {
         post.id shouldBe id
         post.title shouldBe title
         post.content shouldBe content
+        post.authorId shouldBe authorId
         post.categoryId shouldBe categoryId
         post.createdAt shouldBe now
         post.updatedAt shouldBe now
@@ -41,6 +45,7 @@ class PostTest {
     fun `should throw exception when title is blank`() {
         // Given
         val id = PostId.generate()
+        val authorId = UserId.generate()
         val categoryId = CategoryId.generate()
         val now = LocalDateTime.now()
 
@@ -50,6 +55,7 @@ class PostTest {
                 id = id,
                 title = "",
                 content = "Content",
+                authorId = authorId,
                 categoryId = categoryId,
                 createdAt = now,
                 updatedAt = now
@@ -62,6 +68,7 @@ class PostTest {
         // Given
         val id = PostId.generate()
         val longTitle = "a".repeat(201)
+        val authorId = UserId.generate()
         val categoryId = CategoryId.generate()
         val now = LocalDateTime.now()
 
@@ -71,6 +78,7 @@ class PostTest {
                 id = id,
                 title = longTitle,
                 content = "Content",
+                authorId = authorId,
                 categoryId = categoryId,
                 createdAt = now,
                 updatedAt = now
@@ -82,6 +90,7 @@ class PostTest {
     fun `should throw exception when content is blank`() {
         // Given
         val id = PostId.generate()
+        val authorId = UserId.generate()
         val categoryId = CategoryId.generate()
         val now = LocalDateTime.now()
 
@@ -91,6 +100,7 @@ class PostTest {
                 id = id,
                 title = "Title",
                 content = "",
+                authorId = authorId,
                 categoryId = categoryId,
                 createdAt = now,
                 updatedAt = now
@@ -103,6 +113,7 @@ class PostTest {
         // Given
         val id = PostId.generate()
         val longContent = "a".repeat(10001)
+        val authorId = UserId.generate()
         val categoryId = CategoryId.generate()
         val now = LocalDateTime.now()
 
@@ -112,6 +123,7 @@ class PostTest {
                 id = id,
                 title = "Title",
                 content = longContent,
+                authorId = authorId,
                 categoryId = categoryId,
                 createdAt = now,
                 updatedAt = now
@@ -131,6 +143,7 @@ class PostTest {
         // Then
         updatedPost.title shouldBe newTitle
         updatedPost.content shouldBe post.content
+        updatedPost.authorId shouldBe post.authorId
         updatedPost.categoryId shouldBe post.categoryId
         updatedPost.id shouldBe post.id
         updatedPost.createdAt shouldBe post.createdAt
@@ -149,6 +162,7 @@ class PostTest {
         // Then
         updatedPost.content shouldBe newContent
         updatedPost.title shouldBe post.title
+        updatedPost.authorId shouldBe post.authorId
         updatedPost.categoryId shouldBe post.categoryId
         updatedPost.id shouldBe post.id
         updatedPost.createdAt shouldBe post.createdAt
@@ -168,6 +182,7 @@ class PostTest {
         updatedPost.categoryId shouldBe newCategoryId
         updatedPost.title shouldBe post.title
         updatedPost.content shouldBe post.content
+        updatedPost.authorId shouldBe post.authorId
         updatedPost.id shouldBe post.id
         updatedPost.createdAt shouldBe post.createdAt
         updatedPost.updatedAt shouldNotBe post.updatedAt
@@ -201,6 +216,7 @@ class PostTest {
             id = PostId.generate(),
             title = title,
             content = content,
+            authorId = UserId.generate(),
             categoryId = CategoryId.generate(),
             createdAt = now,
             updatedAt = now
