@@ -23,6 +23,9 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("io.mockk:mockk:1.13.8")
+    testImplementation("io.kotest:kotest-assertions-core:5.8.0")
+    testImplementation("org.jetbrains.kotlin:kotlin-test")
 }
 
 tasks.withType<KotlinCompile> {
