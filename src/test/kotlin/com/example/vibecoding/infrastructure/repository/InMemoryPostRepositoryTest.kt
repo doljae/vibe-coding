@@ -3,10 +3,14 @@ package com.example.vibecoding.infrastructure.repository
 import com.example.vibecoding.domain.category.CategoryId
 import com.example.vibecoding.domain.post.Post
 import com.example.vibecoding.domain.post.PostId
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.collections.shouldNotContain
+import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.nulls.shouldBeNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.LocalDateTime
-import kotlin.test.*
 
 class InMemoryPostRepositoryTest {
 
@@ -27,8 +31,8 @@ class InMemoryPostRepositoryTest {
         val foundPost = repository.findById(post.id)
 
         // Then
-        assertEquals(savedPost, post)
-        assertEquals(foundPost, post)
+        savedPost shouldBe post
+        foundPost shouldBe post
     }
 
     @Test
@@ -40,7 +44,7 @@ class InMemoryPostRepositoryTest {
         val result = repository.findById(nonExistentId)
 
         // Then
-        assertNull(result)
+        result.shouldBeNull()
     }
 
     @Test
@@ -58,11 +62,11 @@ class InMemoryPostRepositoryTest {
         val result = repository.findAll()
 
         // Then
-        assertEquals(2, result.size)
-        assertTrue(result.contains(post1))
-        assertTrue(result.contains(post2))
+        result.size shouldBe 2
+        result shouldContain post1
+        result shouldContain post2
         // Most recent first
-        assertTrue(result[0].createdAt >= result[1].createdAt)
+        (result[0].createdAt >= result[1].createdAt) shouldBe true
     }
 
     @Test
@@ -82,10 +86,10 @@ class InMemoryPostRepositoryTest {
         val result = repository.findByCategoryId(categoryId1)
 
         // Then
-        assertEquals(2, result.size)
-        assertTrue(result.contains(post1))
-        assertTrue(result.contains(post2))
-        assertFalse(result.contains(post3))
+        result.size shouldBe 2
+        result shouldContain post1
+        result shouldContain post2
+        result shouldNotContain post3
     }
 
     @Test
@@ -104,10 +108,10 @@ class InMemoryPostRepositoryTest {
         val result = repository.findByTitle("technology")
 
         // Then
-        assertEquals(2, result.size)
-        assertTrue(result.contains(post1))
-        assertTrue(result.contains(post3))
-        assertFalse(result.contains(post2))
+        result.size shouldBe 2
+        result shouldContain post1
+        result shouldContain post3
+        result shouldNotContain post2
     }
 
     @Test
@@ -121,7 +125,7 @@ class InMemoryPostRepositoryTest {
         val result = repository.findByTitle("NonExistent")
 
         // Then
-        assertTrue(result.isEmpty())
+        result.shouldBeEmpty()
     }
 
     @Test
@@ -135,8 +139,8 @@ class InMemoryPostRepositoryTest {
         val found = repository.findById(post.id)
 
         // Then
-        assertTrue(deleted)
-        assertNull(found)
+        deleted shouldBe true
+        found.shouldBeNull()
     }
 
     @Test
@@ -148,7 +152,7 @@ class InMemoryPostRepositoryTest {
         val result = repository.delete(nonExistentId)
 
         // Then
-        assertFalse(result)
+        result shouldBe false
     }
 
     @Test
@@ -162,8 +166,8 @@ class InMemoryPostRepositoryTest {
         val notExists = repository.existsById(PostId.generate())
 
         // Then
-        assertTrue(exists)
-        assertFalse(notExists)
+        exists shouldBe true
+        notExists shouldBe false
     }
 
     @Test
@@ -185,9 +189,9 @@ class InMemoryPostRepositoryTest {
         val count3 = repository.countByCategoryId(CategoryId.generate())
 
         // Then
-        assertEquals(2L, count1)
-        assertEquals(1L, count2)
-        assertEquals(0L, count3)
+        count1 shouldBe 2L
+        count2 shouldBe 1L
+        count3 shouldBe 0L
     }
 
     @Test
@@ -203,8 +207,8 @@ class InMemoryPostRepositoryTest {
         val found = repository.findById(post.id)
 
         // Then
-        assertEquals(updatedPost, found)
-        assertEquals("Updated Post", found?.title)
+        found shouldBe updatedPost
+        found?.title shouldBe "Updated Post"
     }
 
     private fun createTestPost(title: String, content: String, categoryId: CategoryId): Post {

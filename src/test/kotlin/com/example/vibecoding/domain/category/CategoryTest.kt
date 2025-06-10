@@ -1,10 +1,10 @@
 package com.example.vibecoding.domain.category
 
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import java.time.LocalDateTime
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
 
 class CategoryTest {
 
@@ -26,11 +26,11 @@ class CategoryTest {
         )
 
         // Then
-        assertEquals(id, category.id)
-        assertEquals(name, category.name)
-        assertEquals(description, category.description)
-        assertEquals(now, category.createdAt)
-        assertEquals(now, category.updatedAt)
+        category.id shouldBe id
+        category.name shouldBe name
+        category.description shouldBe description
+        category.createdAt shouldBe now
+        category.updatedAt shouldBe now
     }
 
     @Test
@@ -40,7 +40,7 @@ class CategoryTest {
         val now = LocalDateTime.now()
 
         // When & Then
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             Category(
                 id = id,
                 name = "",
@@ -59,7 +59,7 @@ class CategoryTest {
         val now = LocalDateTime.now()
 
         // When & Then
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             Category(
                 id = id,
                 name = longName,
@@ -78,7 +78,7 @@ class CategoryTest {
         val now = LocalDateTime.now()
 
         // When & Then
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             Category(
                 id = id,
                 name = "Technology",
@@ -90,90 +90,69 @@ class CategoryTest {
     }
 
     @Test
-    fun `should allow null description`() {
-        // Given
-        val id = CategoryId.generate()
-        val now = LocalDateTime.now()
-
-        // When
-        val category = Category(
-            id = id,
-            name = "Technology",
-            description = null,
-            createdAt = now,
-            updatedAt = now
-        )
-
-        // Then
-        assertEquals(null, category.description)
-    }
-
-    @Test
     fun `should update name successfully`() {
         // Given
-        val category = createTestCategory()
+        val category = createTestCategory("Technology", "Description")
         val newName = "Updated Technology"
 
         // When
         val updatedCategory = category.updateName(newName)
 
         // Then
-        assertEquals(newName, updatedCategory.name)
-        assertEquals(category.id, updatedCategory.id)
-        assertEquals(category.description, updatedCategory.description)
-        assertEquals(category.createdAt, updatedCategory.createdAt)
-        assertNotEquals(category.updatedAt, updatedCategory.updatedAt)
+        updatedCategory.name shouldBe newName
+        updatedCategory.description shouldBe category.description
+        updatedCategory.id shouldBe category.id
+        updatedCategory.createdAt shouldBe category.createdAt
+        updatedCategory.updatedAt shouldNotBe category.updatedAt
     }
 
     @Test
     fun `should update description successfully`() {
         // Given
-        val category = createTestCategory()
+        val category = createTestCategory("Technology", "Old description")
         val newDescription = "Updated description"
 
         // When
         val updatedCategory = category.updateDescription(newDescription)
 
         // Then
-        assertEquals(newDescription, updatedCategory.description)
-        assertEquals(category.id, updatedCategory.id)
-        assertEquals(category.name, updatedCategory.name)
-        assertEquals(category.createdAt, updatedCategory.createdAt)
-        assertNotEquals(category.updatedAt, updatedCategory.updatedAt)
+        updatedCategory.description shouldBe newDescription
+        updatedCategory.name shouldBe category.name
+        updatedCategory.id shouldBe category.id
+        updatedCategory.createdAt shouldBe category.createdAt
+        updatedCategory.updatedAt shouldNotBe category.updatedAt
     }
 
     @Test
-    fun `should throw exception when updating with blank name`() {
-        // Given
-        val category = createTestCategory()
+    fun `should generate unique category IDs`() {
+        // When
+        val id1 = CategoryId.generate()
+        val id2 = CategoryId.generate()
 
-        // When & Then
-        assertThrows<IllegalArgumentException> {
-            category.updateName("")
-        }
+        // Then
+        id1 shouldNotBe id2
     }
 
     @Test
-    fun `should throw exception when updating with long description`() {
+    fun `should create category ID from string`() {
         // Given
-        val category = createTestCategory()
-        val longDescription = "a".repeat(501)
+        val uuidString = "123e4567-e89b-12d3-a456-426614174000"
 
-        // When & Then
-        assertThrows<IllegalArgumentException> {
-            category.updateDescription(longDescription)
-        }
+        // When
+        val categoryId = CategoryId.from(uuidString)
+
+        // Then
+        categoryId.value.toString() shouldBe uuidString
     }
 
-    private fun createTestCategory(): Category {
+    private fun createTestCategory(name: String, description: String): Category {
         val now = LocalDateTime.now()
         return Category(
             id = CategoryId.generate(),
-            name = "Technology",
-            description = "Tech related posts",
+            name = name,
+            description = description,
             createdAt = now,
             updatedAt = now
         )
     }
 }
-

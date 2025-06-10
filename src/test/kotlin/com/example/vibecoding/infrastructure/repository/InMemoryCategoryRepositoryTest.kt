@@ -2,10 +2,14 @@ package com.example.vibecoding.infrastructure.repository
 
 import com.example.vibecoding.domain.category.Category
 import com.example.vibecoding.domain.category.CategoryId
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.LocalDateTime
-import kotlin.test.*
 
 class InMemoryCategoryRepositoryTest {
 
@@ -26,8 +30,8 @@ class InMemoryCategoryRepositoryTest {
         val foundCategory = repository.findById(category.id)
 
         // Then
-        assertEquals(savedCategory, category)
-        assertEquals(foundCategory, category)
+        savedCategory shouldBe category
+        foundCategory shouldBe category
     }
 
     @Test
@@ -39,7 +43,7 @@ class InMemoryCategoryRepositoryTest {
         val result = repository.findById(nonExistentId)
 
         // Then
-        assertNull(result)
+        result.shouldBeNull()
     }
 
     @Test
@@ -55,9 +59,9 @@ class InMemoryCategoryRepositoryTest {
         val result = repository.findAll()
 
         // Then
-        assertEquals(2, result.size)
-        assertTrue(result.contains(category1))
-        assertTrue(result.contains(category2))
+        result.size shouldBe 2
+        result shouldContain category1
+        result shouldContain category2
     }
 
     @Test
@@ -72,9 +76,9 @@ class InMemoryCategoryRepositoryTest {
         val result3 = repository.findByName("technology")
 
         // Then
-        assertEquals(category, result1)
-        assertEquals(category, result2)
-        assertEquals(category, result3)
+        result1 shouldBe category
+        result2 shouldBe category
+        result3 shouldBe category
     }
 
     @Test
@@ -87,7 +91,7 @@ class InMemoryCategoryRepositoryTest {
         val result = repository.findByName("NonExistent")
 
         // Then
-        assertNull(result)
+        result.shouldBeNull()
     }
 
     @Test
@@ -101,8 +105,8 @@ class InMemoryCategoryRepositoryTest {
         val found = repository.findById(category.id)
 
         // Then
-        assertTrue(deleted)
-        assertNull(found)
+        deleted shouldBe true
+        found.shouldBeNull()
     }
 
     @Test
@@ -114,7 +118,7 @@ class InMemoryCategoryRepositoryTest {
         val result = repository.delete(nonExistentId)
 
         // Then
-        assertFalse(result)
+        result.shouldBe(false)
     }
 
     @Test
@@ -128,8 +132,8 @@ class InMemoryCategoryRepositoryTest {
         val notExists = repository.existsById(CategoryId.generate())
 
         // Then
-        assertTrue(exists)
-        assertFalse(notExists)
+        exists shouldBe true
+        notExists shouldBe false
     }
 
     @Test
@@ -145,10 +149,10 @@ class InMemoryCategoryRepositoryTest {
         val notExists = repository.existsByName("NonExistent")
 
         // Then
-        assertTrue(exists1)
-        assertTrue(exists2)
-        assertTrue(exists3)
-        assertFalse(notExists)
+        exists1 shouldBe true
+        exists2 shouldBe true
+        exists3 shouldBe true
+        notExists shouldBe false
     }
 
     @Test
@@ -164,8 +168,8 @@ class InMemoryCategoryRepositoryTest {
         val found = repository.findById(category.id)
 
         // Then
-        assertEquals(updatedCategory, found)
-        assertEquals("Updated Technology", found?.name)
+        found shouldBe updatedCategory
+        found?.name shouldBe "Updated Technology"
     }
 
     private fun createTestCategory(name: String, description: String): Category {
@@ -179,4 +183,3 @@ class InMemoryCategoryRepositoryTest {
         )
     }
 }
-

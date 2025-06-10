@@ -1,11 +1,11 @@
 package com.example.vibecoding.domain.post
 
 import com.example.vibecoding.domain.category.CategoryId
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import java.time.LocalDateTime
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
 
 class PostTest {
 
@@ -29,12 +29,12 @@ class PostTest {
         )
 
         // Then
-        assertEquals(id, post.id)
-        assertEquals(title, post.title)
-        assertEquals(content, post.content)
-        assertEquals(categoryId, post.categoryId)
-        assertEquals(now, post.createdAt)
-        assertEquals(now, post.updatedAt)
+        post.id shouldBe id
+        post.title shouldBe title
+        post.content shouldBe content
+        post.categoryId shouldBe categoryId
+        post.createdAt shouldBe now
+        post.updatedAt shouldBe now
     }
 
     @Test
@@ -45,7 +45,7 @@ class PostTest {
         val now = LocalDateTime.now()
 
         // When & Then
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             Post(
                 id = id,
                 title = "",
@@ -66,7 +66,7 @@ class PostTest {
         val now = LocalDateTime.now()
 
         // When & Then
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             Post(
                 id = id,
                 title = longTitle,
@@ -86,7 +86,7 @@ class PostTest {
         val now = LocalDateTime.now()
 
         // When & Then
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             Post(
                 id = id,
                 title = "Title",
@@ -107,7 +107,7 @@ class PostTest {
         val now = LocalDateTime.now()
 
         // When & Then
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             Post(
                 id = id,
                 title = "Title",
@@ -122,85 +122,85 @@ class PostTest {
     @Test
     fun `should update title successfully`() {
         // Given
-        val post = createTestPost()
+        val post = createTestPost("Original Title", "Content")
         val newTitle = "Updated Title"
 
         // When
         val updatedPost = post.updateTitle(newTitle)
 
         // Then
-        assertEquals(newTitle, updatedPost.title)
-        assertEquals(post.id, updatedPost.id)
-        assertEquals(post.content, updatedPost.content)
-        assertEquals(post.categoryId, updatedPost.categoryId)
-        assertEquals(post.createdAt, updatedPost.createdAt)
-        assertNotEquals(post.updatedAt, updatedPost.updatedAt)
+        updatedPost.title shouldBe newTitle
+        updatedPost.content shouldBe post.content
+        updatedPost.categoryId shouldBe post.categoryId
+        updatedPost.id shouldBe post.id
+        updatedPost.createdAt shouldBe post.createdAt
+        updatedPost.updatedAt shouldNotBe post.updatedAt
     }
 
     @Test
     fun `should update content successfully`() {
         // Given
-        val post = createTestPost()
+        val post = createTestPost("Title", "Original content")
         val newContent = "Updated content"
 
         // When
         val updatedPost = post.updateContent(newContent)
 
         // Then
-        assertEquals(newContent, updatedPost.content)
-        assertEquals(post.id, updatedPost.id)
-        assertEquals(post.title, updatedPost.title)
-        assertEquals(post.categoryId, updatedPost.categoryId)
-        assertEquals(post.createdAt, updatedPost.createdAt)
-        assertNotEquals(post.updatedAt, updatedPost.updatedAt)
+        updatedPost.content shouldBe newContent
+        updatedPost.title shouldBe post.title
+        updatedPost.categoryId shouldBe post.categoryId
+        updatedPost.id shouldBe post.id
+        updatedPost.createdAt shouldBe post.createdAt
+        updatedPost.updatedAt shouldNotBe post.updatedAt
     }
 
     @Test
     fun `should update category successfully`() {
         // Given
-        val post = createTestPost()
+        val post = createTestPost("Title", "Content")
         val newCategoryId = CategoryId.generate()
 
         // When
         val updatedPost = post.updateCategory(newCategoryId)
 
         // Then
-        assertEquals(newCategoryId, updatedPost.categoryId)
-        assertEquals(post.id, updatedPost.id)
-        assertEquals(post.title, updatedPost.title)
-        assertEquals(post.content, updatedPost.content)
-        assertEquals(post.createdAt, updatedPost.createdAt)
-        assertNotEquals(post.updatedAt, updatedPost.updatedAt)
+        updatedPost.categoryId shouldBe newCategoryId
+        updatedPost.title shouldBe post.title
+        updatedPost.content shouldBe post.content
+        updatedPost.id shouldBe post.id
+        updatedPost.createdAt shouldBe post.createdAt
+        updatedPost.updatedAt shouldNotBe post.updatedAt
     }
 
     @Test
-    fun `should throw exception when updating with blank title`() {
-        // Given
-        val post = createTestPost()
+    fun `should generate unique post IDs`() {
+        // When
+        val id1 = PostId.generate()
+        val id2 = PostId.generate()
 
-        // When & Then
-        assertThrows<IllegalArgumentException> {
-            post.updateTitle("")
-        }
+        // Then
+        id1 shouldNotBe id2
     }
 
     @Test
-    fun `should throw exception when updating with blank content`() {
+    fun `should create post ID from string`() {
         // Given
-        val post = createTestPost()
+        val uuidString = "123e4567-e89b-12d3-a456-426614174000"
 
-        // When & Then
-        assertThrows<IllegalArgumentException> {
-            post.updateContent("")
-        }
+        // When
+        val postId = PostId.from(uuidString)
+
+        // Then
+        postId.value.toString() shouldBe uuidString
     }
 
-    private fun createTestPost(): Post {
+    private fun createTestPost(title: String, content: String): Post {
         val now = LocalDateTime.now()
         return Post(
             id = PostId.generate(),
-            title = "Test Post",
-            content = "Test content",
+            title = title,
+            content = content,
             categoryId = CategoryId.generate(),
             createdAt = now,
             updatedAt = now

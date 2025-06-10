@@ -1,15 +1,22 @@
 package com.example.vibecoding.integration
 
 import com.example.vibecoding.application.category.CategoryService
+import com.example.vibecoding.application.category.CategoryAlreadyExistsException
+import com.example.vibecoding.application.category.CategoryNotFoundException as CategoryServiceCategoryNotFoundException
 import com.example.vibecoding.application.post.PostService
+import com.example.vibecoding.application.post.PostNotFoundException
+import com.example.vibecoding.application.post.CategoryNotFoundException as PostServiceCategoryNotFoundException
 import com.example.vibecoding.domain.category.CategoryId
 import com.example.vibecoding.domain.post.PostId
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.string.shouldContain
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 /**
  * Integration test demonstrating the complete blog service functionality
@@ -31,13 +38,13 @@ class BlogServiceIntegrationTest {
         val scienceCategory = categoryService.createCategory("Science", "Scientific discoveries")
 
         // Verify categories were created
-        assertNotNull(techCategory.id)
-        assertEquals("Technology", techCategory.name)
-        assertEquals("All about tech", techCategory.description)
+        techCategory.id.shouldNotBeNull()
+        techCategory.name shouldBe "Technology"
+        techCategory.description shouldBe "All about tech"
 
         // Get all categories
         val allCategories = categoryService.getAllCategories()
-        assertEquals(2, allCategories.size)
+        allCategories.size shouldBe 2
 
         // Create posts
         val post1 = postService.createPost(
@@ -48,44 +55,44 @@ class BlogServiceIntegrationTest {
 
         val post2 = postService.createPost(
             "Spring Boot Best Practices",
-            "Here are some best practices for Spring Boot development...",
+            "Spring Boot makes it easy to create stand-alone applications...",
             techCategory.id
         )
 
         val post3 = postService.createPost(
             "Quantum Computing Basics",
-            "Quantum computing represents a new paradigm...",
+            "Quantum computing is a revolutionary approach to computation...",
             scienceCategory.id
         )
 
         // Verify posts were created
-        assertNotNull(post1.id)
-        assertEquals("Introduction to Kotlin", post1.title)
-        assertEquals(techCategory.id, post1.categoryId)
+        post1.id.shouldNotBeNull()
+        post1.title shouldBe "Introduction to Kotlin"
+        post1.categoryId shouldBe techCategory.id
         
         // Verify post2 was created
-        assertNotNull(post2.id)
-        assertEquals("Spring Boot Best Practices", post2.title)
-        assertEquals(techCategory.id, post2.categoryId)
+        post2.id.shouldNotBeNull()
+        post2.title shouldBe "Spring Boot Best Practices"
+        post2.categoryId shouldBe techCategory.id
 
         // Get all posts
         val allPosts = postService.getAllPosts()
-        assertEquals(3, allPosts.size)
+        allPosts.size shouldBe 3
 
         // Get posts by category
         val techPosts = postService.getPostsByCategory(techCategory.id)
-        assertEquals(2, techPosts.size)
-        assertTrue(techPosts.any { it.title == "Introduction to Kotlin" })
-        assertTrue(techPosts.any { it.title == "Spring Boot Best Practices" })
+        techPosts.size shouldBe 2
+        techPosts.any { it.title == "Introduction to Kotlin" } shouldBe true
+        techPosts.any { it.title == "Spring Boot Best Practices" } shouldBe true
 
         val sciencePosts = postService.getPostsByCategory(scienceCategory.id)
-        assertEquals(1, sciencePosts.size)
-        assertEquals("Quantum Computing Basics", sciencePosts[0].title)
+        sciencePosts.size shouldBe 1
+        sciencePosts[0].title shouldBe "Quantum Computing Basics"
 
         // Search posts by title
         val kotlinPosts = postService.searchPostsByTitle("Kotlin")
-        assertEquals(1, kotlinPosts.size)
-        assertEquals("Introduction to Kotlin", kotlinPosts[0].title)
+        kotlinPosts.size shouldBe 1
+        kotlinPosts[0].title shouldBe "Introduction to Kotlin"
 
         // Update a post
         val updatedPost = postService.updatePost(
@@ -94,8 +101,8 @@ class BlogServiceIntegrationTest {
             "This is an updated content about advanced Kotlin features...",
             null
         )
-        assertEquals("Advanced Kotlin Programming", updatedPost.title)
-        assertEquals("This is an updated content about advanced Kotlin features...", updatedPost.content)
+        updatedPost.title shouldBe "Advanced Kotlin Programming"
+        updatedPost.content shouldBe "This is an updated content about advanced Kotlin features..."
 
         // Update a category
         val updatedCategory = categoryService.updateCategory(
@@ -103,22 +110,22 @@ class BlogServiceIntegrationTest {
             "Advanced Technology",
             "Advanced tech topics and tutorials"
         )
-        assertEquals("Advanced Technology", updatedCategory.name)
-        assertEquals("Advanced tech topics and tutorials", updatedCategory.description)
+        updatedCategory.name shouldBe "Advanced Technology"
+        updatedCategory.description shouldBe "Advanced tech topics and tutorials"
 
         // Verify we can still find the category by its new name
         val foundCategory = categoryService.getCategoryByName("Advanced Technology")
-        assertNotNull(foundCategory)
-        assertEquals(techCategory.id, foundCategory.id)
+        foundCategory.shouldNotBeNull()
+        foundCategory.id shouldBe techCategory.id
 
         // Delete a post
         postService.deletePost(post3.id)
         val remainingPosts = postService.getAllPosts()
-        assertEquals(2, remainingPosts.size)
+        remainingPosts.size shouldBe 2
 
         // Verify we can't delete a category that has posts
         val techPostsCount = postService.getPostsByCategory(techCategory.id).size
-        assertTrue(techPostsCount > 0)
+        (techPostsCount > 0) shouldBe true
 
         // Delete all posts from tech category first
         val techPostsToDelete = postService.getPostsByCategory(techCategory.id)
@@ -129,52 +136,41 @@ class BlogServiceIntegrationTest {
         // Now we can delete the category
         categoryService.deleteCategory(techCategory.id)
         val finalCategories = categoryService.getAllCategories()
-        assertEquals(1, finalCategories.size)
-        assertEquals("Science", finalCategories[0].name)
+        finalCategories.size shouldBe 1
+        finalCategories[0].name shouldBe "Science"
     }
 
     @Test
     fun `should handle edge cases and validations`() {
-        // Create a category
+        // Create a test category
         val category = categoryService.createCategory("Test Category", "Test description")
         
         // Verify category was created
-        assertNotNull(category.id)
-        assertEquals("Test Category", category.name)
+        category.id.shouldNotBeNull()
+        category.name shouldBe "Test Category"
 
         // Try to create a category with the same name (should fail)
-        try {
+        shouldThrow<CategoryAlreadyExistsException> {
             categoryService.createCategory("Test Category", "Another description")
-            throw AssertionError("Should have thrown CategoryAlreadyExistsException")
-        } catch (e: Exception) {
-            assertTrue(e.message?.contains("already exists") == true)
         }
 
         // Try to create a post with non-existent category (should fail)
         val nonExistentCategoryId = CategoryId.generate()
-        try {
+        shouldThrow<PostServiceCategoryNotFoundException> {
             postService.createPost("Test Post", "Test content", nonExistentCategoryId)
-            throw AssertionError("Should have thrown CategoryNotFoundException")
-        } catch (e: Exception) {
-            assertTrue(e.message?.contains("not found") == true)
         }
 
         // Try to get non-existent post (should fail)
         val nonExistentPostId = PostId.generate()
-        try {
+        shouldThrow<PostNotFoundException> {
             postService.getPostById(nonExistentPostId)
-            throw AssertionError("Should have thrown PostNotFoundException")
-        } catch (e: Exception) {
-            assertTrue(e.message?.contains("not found") == true)
         }
 
         // Try to delete non-existent category (should fail)
         val anotherNonExistentCategoryId = CategoryId.generate()
-        try {
+        shouldThrow<CategoryServiceCategoryNotFoundException> {
             categoryService.deleteCategory(anotherNonExistentCategoryId)
-            throw AssertionError("Should have thrown CategoryNotFoundException")
-        } catch (e: Exception) {
-            assertTrue(e.message?.contains("not found") == true)
         }
     }
 }
+
