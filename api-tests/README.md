@@ -17,7 +17,14 @@ Streamlined test script for quick verification of basic functionality:
 - Creates sample data (category, user, post)
 - Tests core operations
 - Verifies relationships between entities
-- Perfect for quick smoke testing
+- **Manual variable substitution required** - see usage instructions below
+
+### ⚡ `quick-test-intellij.http`
+IntelliJ IDEA optimized version with automatic variable handling:
+- Same test coverage as quick-test.http
+- **Automatic variable substitution** using IntelliJ's HTTP client features
+- Variables are automatically populated between requests
+- Perfect for IntelliJ IDEA users
 
 ## Prerequisites
 
@@ -36,16 +43,26 @@ Streamlined test script for quick verification of basic functionality:
 ## Usage Instructions
 
 ### Option 1: IntelliJ IDEA (Recommended)
-1. Open the `.http` files in IntelliJ IDEA
-2. Click the green arrow (▶️) next to any request to execute it
-3. Use variables like `{{createUser.response.body.id}}` to chain requests
-4. View responses in the built-in response viewer
+1. **For automatic variables**: Use `quick-test-intellij.http`
+   - Open the file in IntelliJ IDEA
+   - Execute requests 1-11 in order by clicking the green arrow (▶️)
+   - Variables are automatically populated between requests
+   
+2. **For manual variables**: Use `quick-test.http`
+   - Execute request 1 (Create category) and copy the `id` from response
+   - Execute request 2 (Create user) and copy the `id` from response  
+   - Update the variables at the top of the file:
+     ```
+     @categoryId = paste-category-id-here
+     @userId = paste-user-id-here
+     ```
+   - Continue with remaining requests
 
 ### Option 2: VS Code with REST Client
 1. Install the "REST Client" extension
-2. Open the `.http` files
-3. Click "Send Request" above each request
-4. Variables are automatically handled between requests
+2. Use `quick-test.http` with manual variable substitution
+3. Copy IDs from responses and update variables manually
+4. Click "Send Request" above each request
 
 ### Option 3: Manual Testing
 1. Copy request details from the `.http` files
@@ -178,20 +195,28 @@ http://localhost:8080/swagger-ui.html
 
 ### Common Issues
 
-1. **Connection Refused**
+1. **Variable Substitution Errors**
+   - **Problem**: `Invalid request because of unsubstituted variable`
+   - **Solution**: 
+     - For IntelliJ IDEA: Use `quick-test-intellij.http` for automatic variables
+     - For other clients: Use `quick-test.http` and manually update variables
+     - Execute requests in sequence (1 → 2 → update variables → 3 → etc.)
+     - Copy exact ID values from JSON responses
+
+2. **Connection Refused**
    - Ensure the application is running on port 8080
    - Check if another service is using the port
 
-2. **404 Not Found**
+3. **404 Not Found**
    - Verify the endpoint URLs are correct
    - Check if the application started successfully
 
-3. **400 Bad Request**
+4. **400 Bad Request**
    - Validate JSON syntax in request bodies
    - Ensure required fields are provided
    - Check data types and formats
 
-4. **Variable Not Found**
+5. **Variable Not Found**
    - Ensure previous requests executed successfully
    - Check variable names match the `@name` annotations
    - Verify response structure contains expected fields
@@ -210,4 +235,3 @@ When adding new API endpoints:
 2. Update the quick test if it's a core feature
 3. Document any new variables or dependencies
 4. Include both success and error test cases
-

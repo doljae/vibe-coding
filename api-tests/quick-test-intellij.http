@@ -1,19 +1,11 @@
 ###
-# Quick API Test Script
+# Quick API Test Script for IntelliJ IDEA
 # 
-# This file contains a streamlined set of API tests for quick verification
-# Execute these requests in order to test the basic functionality
-#
-# IMPORTANT: Execute requests 1 and 2 first, then copy the IDs from responses
-# and replace the placeholder values in the variables section below
+# This version uses IntelliJ IDEA's HTTP client variable syntax
+# Execute these requests in order - variables will be automatically populated
 ###
 
 @baseUrl = http://localhost:8080
-
-# Variables - UPDATE THESE WITH ACTUAL IDs FROM YOUR RESPONSES
-@categoryId = REPLACE_WITH_CATEGORY_ID_FROM_STEP_1
-@userId = REPLACE_WITH_USER_ID_FROM_STEP_2
-@postId = REPLACE_WITH_POST_ID_FROM_STEP_3
 
 ### 1. Create a category
 # @name createCategory
@@ -24,6 +16,10 @@ Content-Type: application/json
   "name": "Technology",
   "description": "Technology related posts"
 }
+
+> {%
+client.global.set("categoryId", response.body.id);
+%}
 
 ### 2. Create a user
 # @name createUser
@@ -37,7 +33,11 @@ Content-Type: application/json
   "bio": "A test user for API testing"
 }
 
-### 3. Create a post (UPDATE @categoryId and @userId variables above first!)
+> {%
+client.global.set("userId", response.body.id);
+%}
+
+### 3. Create a post
 # @name createPost
 POST {{baseUrl}}/api/posts
 Content-Type: application/json
@@ -49,11 +49,15 @@ Content-Type: application/json
   "categoryId": "{{categoryId}}"
 }
 
+> {%
+client.global.set("postId", response.body.id);
+%}
+
 ### 4. Get all posts
 GET {{baseUrl}}/api/posts
 Accept: application/json
 
-### 5. Get the specific post (UPDATE @postId variable above first!)
+### 5. Get the specific post
 GET {{baseUrl}}/api/posts/{{postId}}
 Accept: application/json
 
