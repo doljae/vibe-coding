@@ -1,6 +1,7 @@
 package com.example.vibecoding.domain.post
 
 import com.example.vibecoding.domain.category.CategoryId
+import com.example.vibecoding.domain.user.UserId
 import java.time.LocalDateTime
 import java.util.*
 
@@ -11,6 +12,7 @@ data class Post(
     val id: PostId,
     val title: String,
     val content: String,
+    val authorId: UserId,
     val categoryId: CategoryId,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
@@ -60,4 +62,3 @@ value class PostId(val value: UUID) {
         fun from(value: String): PostId = PostId(UUID.fromString(value))
     }
 }
-

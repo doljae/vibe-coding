@@ -4,6 +4,7 @@ import com.example.vibecoding.domain.category.CategoryId
 import com.example.vibecoding.domain.post.Post
 import com.example.vibecoding.domain.post.PostId
 import com.example.vibecoding.domain.post.PostRepository
+import com.example.vibecoding.domain.user.UserId
 import org.springframework.stereotype.Repository
 import java.util.concurrent.ConcurrentHashMap
 
@@ -34,6 +35,12 @@ class InMemoryPostRepository : PostRepository {
             .sortedByDescending { it.createdAt }
     }
 
+    override fun findByAuthorId(authorId: UserId): List<Post> {
+        return posts.values
+            .filter { it.authorId == authorId }
+            .sortedByDescending { it.createdAt }
+    }
+
     override fun findByTitle(title: String): List<Post> {
         return posts.values
             .filter { it.title.contains(title, ignoreCase = true) }
@@ -50,6 +57,19 @@ class InMemoryPostRepository : PostRepository {
 
     override fun countByCategoryId(categoryId: CategoryId): Long {
         return posts.values.count { it.categoryId == categoryId }.toLong()
+    }
+
+    override fun countByAuthorId(authorId: UserId): Long {
+        return posts.values.count { it.authorId == authorId }.toLong()
+    }
+
+    // Additional methods for testing
+    fun clear() {
+        posts.clear()
+    }
+
+    fun size(): Int {
+        return posts.size
     }
 }
 

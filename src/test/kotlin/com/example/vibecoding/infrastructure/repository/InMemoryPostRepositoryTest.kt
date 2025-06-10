@@ -3,6 +3,7 @@ package com.example.vibecoding.infrastructure.repository
 import com.example.vibecoding.domain.category.CategoryId
 import com.example.vibecoding.domain.post.Post
 import com.example.vibecoding.domain.post.PostId
+import com.example.vibecoding.domain.user.UserId
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldNotContain
@@ -217,10 +218,10 @@ class InMemoryPostRepositoryTest {
             id = PostId.generate(),
             title = title,
             content = content,
+            authorId = UserId.generate(),
             categoryId = categoryId,
             createdAt = now,
             updatedAt = now
         )
     }
 }
-
