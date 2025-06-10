@@ -1,0 +1,14 @@
+# Application configuration
+server:
+  port: 8080
+
+spring:
+  application:
+    name: vibe-coding
+
+# Image storage configuration
+app:
+  image:
+    storage:
+      path: ./uploads/images
+
