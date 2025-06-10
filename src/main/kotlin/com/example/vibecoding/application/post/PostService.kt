@@ -2,12 +2,11 @@ package com.example.vibecoding.application.post
 
 import com.example.vibecoding.domain.category.CategoryId
 import com.example.vibecoding.domain.category.CategoryRepository
-import com.example.vibecoding.domain.post.Post
-import com.example.vibecoding.domain.post.PostId
-import com.example.vibecoding.domain.post.PostRepository
+import com.example.vibecoding.domain.post.*
 import com.example.vibecoding.domain.user.UserId
 import com.example.vibecoding.domain.user.UserRepository
 import org.springframework.stereotype.Service
+import java.io.InputStream
 import java.time.LocalDateTime
 
 /**
@@ -17,7 +16,8 @@ import java.time.LocalDateTime
 class PostService(
     private val postRepository: PostRepository,
     private val categoryRepository: CategoryRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val imageStorageService: ImageStorageService
 ) {
 
     fun createPost(title: String, content: String, authorId: UserId, categoryId: CategoryId): Post {
@@ -41,6 +41,112 @@ class PostService(
         )
 
         return postRepository.save(post)
+    }
+
+    fun createPostWithImages(
+        title: String, 
+        content: String, 
+        authorId: UserId, 
+        categoryId: CategoryId,
+        images: List<ImageUploadRequest>
+    ): Post {
+        if (userRepository.findById(authorId) == null) {
+            throw UserNotFoundException("User with id '$authorId' not found")
+        }
+        
+        if (!categoryRepository.existsById(categoryId)) {
+            throw CategoryNotFoundException("Category with id '$categoryId' not found")
+        }
+
+        require(images.size <= Post.MAX_IMAGES_PER_POST) { 
+            "Cannot create post with more than ${Post.MAX_IMAGES_PER_POST} images" 
+        }
+
+        val now = LocalDateTime.now()
+        var post = Post(
+            id = PostId.generate(),
+            title = title,
+            content = content,
+            authorId = authorId,
+            categoryId = categoryId,
+            createdAt = now,
+            updatedAt = now
+        )
+
+        // Add images to the post
+        images.forEach { imageRequest ->
+            val imageAttachment = storeImageAttachment(imageRequest)
+            post = post.addImageAttachment(imageAttachment)
+        }
+
+        return postRepository.save(post)
+    }
+
+    fun attachImageToPost(postId: PostId, imageRequest: ImageUploadRequest): Post {
+        val existingPost = postRepository.findById(postId)
+            ?: throw PostNotFoundException("Post with id '$postId' not found")
+
+        if (!existingPost.canAddMoreImages()) {
+            throw ImageAttachmentException(
+                "Cannot attach image: Post already has maximum of ${Post.MAX_IMAGES_PER_POST} images"
+            )
+        }
+
+        val imageAttachment = storeImageAttachment(imageRequest)
+        val updatedPost = existingPost.addImageAttachment(imageAttachment)
+
+        return postRepository.save(updatedPost)
+    }
+
+    fun removeImageFromPost(postId: PostId, imageId: ImageId): Post {
+        val existingPost = postRepository.findById(postId)
+            ?: throw PostNotFoundException("Post with id '$postId' not found")
+
+        val imageAttachment = existingPost.getImageAttachment(imageId)
+            ?: throw ImageAttachmentException("Image with id '$imageId' not found in post")
+
+        // Remove from storage
+        try {
+            imageStorageService.deleteImage(imageAttachment.storagePath)
+        } catch (e: ImageStorageException) {
+            // Log the error but continue with removing from post
+            // This handles cases where the file might already be deleted
+        }
+
+        val updatedPost = existingPost.removeImageAttachment(imageId)
+        return postRepository.save(updatedPost)
+    }
+
+    fun getPostImage(postId: PostId, imageId: ImageId): ImageAttachment {
+        val post = postRepository.findById(postId)
+            ?: throw PostNotFoundException("Post with id '$postId' not found")
+
+        return post.getImageAttachment(imageId)
+            ?: throw ImageAttachmentException("Image with id '$imageId' not found in post")
+    }
+
+    fun getPostImageData(postId: PostId, imageId: ImageId): InputStream {
+        val imageAttachment = getPostImage(postId, imageId)
+        return imageStorageService.retrieveImage(imageAttachment.storagePath)
+    }
+
+    private fun storeImageAttachment(imageRequest: ImageUploadRequest): ImageAttachment {
+        try {
+            val storagePath = imageStorageService.storeImage(
+                imageRequest.filename,
+                imageRequest.contentType,
+                imageRequest.inputStream
+            )
+
+            return ImageAttachment.create(
+                filename = imageRequest.filename,
+                storagePath = storagePath,
+                contentType = imageRequest.contentType,
+                fileSizeBytes = imageRequest.fileSizeBytes
+            )
+        } catch (e: ImageStorageException) {
+            throw ImageAttachmentException("Failed to store image: ${e.message}", e)
+        }
     }
 
     fun updatePost(id: PostId, title: String?, content: String?, categoryId: CategoryId?): Post {
@@ -114,3 +220,4 @@ class PostService(
 class PostNotFoundException(message: String) : RuntimeException(message)
 class CategoryNotFoundException(message: String) : RuntimeException(message)
 class UserNotFoundException(message: String) : RuntimeException(message)
+class ImageAttachmentException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
