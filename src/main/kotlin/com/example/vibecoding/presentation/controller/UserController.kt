@@ -110,8 +110,8 @@ class UserController(
     @GetMapping("/{id}/posts")
     fun getPostsByUser(@PathVariable id: String): ResponseEntity<List<PostSummaryResponse>> {
         val userId = UserId.from(id)
-        val user = userService.getUserById(userId)
         val posts = postService.getPostsByAuthor(userId)
+        val user = userService.getUserById(userId)
         
         val response = posts.map { post ->
             val category = categoryService.getCategoryById(post.categoryId)
@@ -121,10 +121,12 @@ class UserController(
                 author = UserSummaryResponse.from(user),
                 category = CategorySummaryResponse.from(category),
                 imageCount = post.getImageAttachmentCount(),
+                likeCount = post.likeCount,
                 createdAt = post.createdAt,
                 updatedAt = post.updatedAt
             )
         }
+        
         return ResponseEntity.ok(response)
     }
 

@@ -17,7 +17,8 @@ class PostService(
     private val postRepository: PostRepository,
     private val categoryRepository: CategoryRepository,
     private val userRepository: UserRepository,
-    private val imageStorageService: ImageStorageService
+    private val imageStorageService: ImageStorageService,
+    private val likeRepository: LikeRepository
 ) {
 
     fun createPost(title: String, content: String, authorId: UserId, categoryId: CategoryId): Post {
@@ -214,6 +215,46 @@ class PostService(
 
     fun getPostCountByAuthor(authorId: UserId): Long {
         return postRepository.countByAuthorId(authorId)
+    }
+
+    /**
+     * Synchronize the like count for a post with the actual count from likes
+     * This method ensures data consistency between Post.likeCount and actual Like entities
+     */
+    fun synchronizeLikeCount(postId: PostId): Post {
+        val post = postRepository.findById(postId)
+            ?: throw PostNotFoundException("Post with id '$postId' not found")
+        
+        val actualLikeCount = likeRepository.countByPostId(postId)
+        
+        if (post.likeCount != actualLikeCount) {
+            val updatedPost = post.updateLikeCount(actualLikeCount)
+            return postRepository.save(updatedPost)
+        }
+        
+        return post
+    }
+
+    /**
+     * Get post with synchronized like count
+     */
+    fun getPostByIdWithSyncedLikes(id: PostId): Post {
+        return synchronizeLikeCount(id)
+    }
+
+    /**
+     * Get all posts with synchronized like counts
+     */
+    fun getAllPostsWithSyncedLikes(): List<Post> {
+        return postRepository.findAll().map { post ->
+            val actualLikeCount = likeRepository.countByPostId(post.id)
+            if (post.likeCount != actualLikeCount) {
+                val updatedPost = post.updateLikeCount(actualLikeCount)
+                postRepository.save(updatedPost)
+            } else {
+                post
+            }
+        }
     }
 }
 

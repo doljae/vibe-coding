@@ -37,8 +37,137 @@ class PostTest {
         post.content shouldBe content
         post.authorId shouldBe authorId
         post.categoryId shouldBe categoryId
+        post.likeCount shouldBe 0
         post.createdAt shouldBe now
         post.updatedAt shouldBe now
+    }
+
+    @Test
+    fun `should create post with custom like count`() {
+        // Given
+        val id = PostId.generate()
+        val title = "My First Post"
+        val content = "This is the content of my first post"
+        val authorId = UserId.generate()
+        val categoryId = CategoryId.generate()
+        val likeCount = 5L
+        val now = LocalDateTime.now()
+
+        // When
+        val post = Post(
+            id = id,
+            title = title,
+            content = content,
+            authorId = authorId,
+            categoryId = categoryId,
+            likeCount = likeCount,
+            createdAt = now,
+            updatedAt = now
+        )
+
+        // Then
+        post.likeCount shouldBe likeCount
+    }
+
+    @Test
+    fun `should not allow negative like count`() {
+        // Given
+        val id = PostId.generate()
+        val title = "My First Post"
+        val content = "This is the content of my first post"
+        val authorId = UserId.generate()
+        val categoryId = CategoryId.generate()
+        val now = LocalDateTime.now()
+
+        // When & Then
+        shouldThrow<IllegalArgumentException> {
+            Post(
+                id = id,
+                title = title,
+                content = content,
+                authorId = authorId,
+                categoryId = categoryId,
+                likeCount = -1,
+                createdAt = now,
+                updatedAt = now
+            )
+        }.message shouldBe "Like count cannot be negative"
+    }
+
+    @Test
+    fun `should update like count`() {
+        // Given
+        val post = createValidPost()
+        val newLikeCount = 10L
+
+        // When
+        val updatedPost = post.updateLikeCount(newLikeCount)
+
+        // Then
+        updatedPost.likeCount shouldBe newLikeCount
+        updatedPost.updatedAt shouldNotBe post.updatedAt
+        updatedPost.id shouldBe post.id
+        updatedPost.title shouldBe post.title
+        updatedPost.content shouldBe post.content
+    }
+
+    @Test
+    fun `should not allow negative like count in update`() {
+        // Given
+        val post = createValidPost()
+
+        // When & Then
+        shouldThrow<IllegalArgumentException> {
+            post.updateLikeCount(-1)
+        }.message shouldBe "Like count cannot be negative"
+    }
+
+    @Test
+    fun `should increment like count`() {
+        // Given
+        val post = createValidPost().updateLikeCount(5)
+
+        // When
+        val updatedPost = post.incrementLikeCount()
+
+        // Then
+        updatedPost.likeCount shouldBe 6
+        updatedPost.updatedAt shouldNotBe post.updatedAt
+    }
+
+    @Test
+    fun `should decrement like count`() {
+        // Given
+        val post = createValidPost().updateLikeCount(5)
+
+        // When
+        val updatedPost = post.decrementLikeCount()
+
+        // Then
+        updatedPost.likeCount shouldBe 4
+        updatedPost.updatedAt shouldNotBe post.updatedAt
+    }
+
+    @Test
+    fun `should not allow decrementing like count below zero`() {
+        // Given
+        val post = createValidPost() // likeCount = 0
+
+        // When & Then
+        shouldThrow<IllegalArgumentException> {
+            post.decrementLikeCount()
+        }.message shouldBe "Cannot decrement like count below zero"
+    }
+
+    @Test
+    fun `should check if post has likes`() {
+        // Given
+        val postWithoutLikes = createValidPost()
+        val postWithLikes = createValidPost().updateLikeCount(5)
+
+        // Then
+        postWithoutLikes.hasLikes() shouldBe false
+        postWithLikes.hasLikes() shouldBe true
     }
 
     @Test
@@ -451,6 +580,18 @@ class PostTest {
             storagePath = "test/path/$filename",
             contentType = "image/jpeg",
             fileSizeBytes = 1024L
+        )
+    }
+
+    private fun createValidPost(): Post {
+        return Post(
+            id = PostId.generate(),
+            title = "Test Post",
+            content = "Test content",
+            authorId = UserId.generate(),
+            categoryId = CategoryId.generate(),
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now()
         )
     }
 }
