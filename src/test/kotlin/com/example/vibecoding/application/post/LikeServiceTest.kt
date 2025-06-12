@@ -277,6 +277,258 @@ class LikeServiceTest {
         result shouldBe expectedCount
     }
 
+    // ========== COMPLEX TEST SCENARIOS ==========
+
+    @Test
+    fun `should handle concurrent like attempts on same post by different users`() {
+        // Given
+        val postId = PostId.generate()
+        val user1 = UserId.generate()
+        val user2 = UserId.generate()
+        val user3 = UserId.generate()
+        val post = createValidPost(postId = postId, likeCount = 0)
+
+        // Mock repository calls for concurrent scenario
+        every { postRepository.findById(postId) } returns post
+        every { likeRepository.existsByPostIdAndUserId(postId, user1) } returns false
+        every { likeRepository.existsByPostIdAndUserId(postId, user2) } returns false
+        every { likeRepository.existsByPostIdAndUserId(postId, user3) } returns false
+        every { likeRepository.save(any()) } returnsMany listOf(
+            createValidLike(postId = postId, userId = user1),
+            createValidLike(postId = postId, userId = user2),
+            createValidLike(postId = postId, userId = user3)
+        )
+        every { postRepository.save(any()) } returns post.copy(likeCount = 1) andThen 
+                                                      post.copy(likeCount = 2) andThen 
+                                                      post.copy(likeCount = 3)
+
+        // When - Simulate concurrent likes
+        val results = listOf(
+            likeService.likePost(postId, user1),
+            likeService.likePost(postId, user2),
+            likeService.likePost(postId, user3)
+        )
+
+        // Then
+        results shouldHaveSize 3
+        results.forEach { like ->
+            like.postId shouldBe postId
+            like.userId shouldNotBe null
+        }
+        verify(exactly = 3) { likeRepository.save(any()) }
+        verify(exactly = 3) { postRepository.save(any()) }
+    }
+
+    @Test
+    fun `should handle rapid like and unlike sequence by same user`() {
+        // Given
+        val postId = PostId.generate()
+        val userId = UserId.generate()
+        val post = createValidPost(postId = postId, likeCount = 5)
+        val like = createValidLike(postId = postId, userId = userId)
+
+        every { postRepository.findById(postId) } returns post
+        
+        // First like attempt
+        every { likeRepository.existsByPostIdAndUserId(postId, userId) } returns false andThen true andThen false
+        every { likeRepository.save(any()) } returns like
+        every { likeRepository.findByPostIdAndUserId(postId, userId) } returns like andThen null
+        every { likeRepository.delete(like.id) } returns true
+        every { postRepository.save(any()) } returns post.incrementLikeCount() andThen 
+                                                      post.decrementLikeCount() andThen 
+                                                      post.incrementLikeCount()
+
+        // When - Rapid sequence: like -> unlike -> like
+        val firstLike = likeService.likePost(postId, userId)
+        likeService.unlikePost(postId, userId)
+        val secondLike = likeService.likePost(postId, userId)
+
+        // Then
+        firstLike.postId shouldBe postId
+        firstLike.userId shouldBe userId
+        secondLike.postId shouldBe postId
+        secondLike.userId shouldBe userId
+        verify(exactly = 2) { likeRepository.save(any()) }
+        verify(exactly = 1) { likeRepository.delete(any()) }
+    }
+
+    @Test
+    fun `should handle bulk like operations with mixed success and failure`() {
+        // Given
+        val posts = (1..5).map { createValidPost(likeCount = it.toLong()) }
+        val userId = UserId.generate()
+        val validPostIds = posts.take(3).map { it.id }
+        val invalidPostIds = listOf(PostId.generate(), PostId.generate())
+
+        // Mock valid posts
+        validPostIds.forEachIndexed { index, postId ->
+            every { postRepository.findById(postId) } returns posts[index]
+            every { likeRepository.existsByPostIdAndUserId(postId, userId) } returns false
+            every { likeRepository.save(any()) } returns createValidLike(postId = postId, userId = userId)
+            every { postRepository.save(any()) } returns posts[index].incrementLikeCount()
+        }
+
+        // Mock invalid posts
+        invalidPostIds.forEach { postId ->
+            every { postRepository.findById(postId) } returns null
+        }
+
+        // When & Then - Process valid posts successfully
+        validPostIds.forEach { postId ->
+            val result = likeService.likePost(postId, userId)
+            result.postId shouldBe postId
+            result.userId shouldBe userId
+        }
+
+        // When & Then - Process invalid posts with failures
+        invalidPostIds.forEach { postId ->
+            shouldThrow<PostNotFoundException> {
+                likeService.likePost(postId, userId)
+            }
+        }
+
+        verify(exactly = 3) { likeRepository.save(any()) }
+        verify(exactly = 5) { postRepository.findById(any()) }
+    }
+
+    @Test
+    fun `should handle edge case with post having maximum like count`() {
+        // Given
+        val postId = PostId.generate()
+        val userId = UserId.generate()
+        val maxLikeCount = Long.MAX_VALUE - 1
+        val post = createValidPost(postId = postId, likeCount = maxLikeCount)
+        val like = createValidLike(postId = postId, userId = userId)
+
+        every { postRepository.findById(postId) } returns post
+        every { likeRepository.existsByPostIdAndUserId(postId, userId) } returns false
+        every { likeRepository.save(any()) } returns like
+        every { postRepository.save(any()) } returns post.copy(likeCount = maxLikeCount + 1)
+
+        // When
+        val result = likeService.likePost(postId, userId)
+
+        // Then
+        result shouldNotBe null
+        result.postId shouldBe postId
+        result.userId shouldBe userId
+        verify { postRepository.save(match { it.likeCount == maxLikeCount + 1 }) }
+    }
+
+    @Test
+    fun `should handle toggle like with complex state transitions`() {
+        // Given
+        val postId = PostId.generate()
+        val userId = UserId.generate()
+        val post = createValidPost(postId = postId, likeCount = 10)
+        val like = createValidLike(postId = postId, userId = userId)
+
+        every { postRepository.findById(postId) } returns post
+
+        // First toggle: not liked -> liked
+        every { likeRepository.existsByPostIdAndUserId(postId, userId) } returns false andThen true
+        every { likeRepository.save(any()) } returns like
+        every { postRepository.save(any()) } returns post.incrementLikeCount() andThen post.decrementLikeCount()
+        every { likeRepository.findByPostIdAndUserId(postId, userId) } returns like
+        every { likeRepository.delete(like.id) } returns true
+
+        // When & Then - First toggle (like)
+        val firstToggle = likeService.toggleLike(postId, userId)
+        firstToggle shouldBe true
+
+        // When & Then - Second toggle (unlike)
+        val secondToggle = likeService.toggleLike(postId, userId)
+        secondToggle shouldBe false
+
+        verify(exactly = 1) { likeRepository.save(any()) }
+        verify(exactly = 1) { likeRepository.delete(any()) }
+        verify(exactly = 2) { postRepository.save(any()) }
+    }
+
+    @Test
+    fun `should handle user with extensive like history`() {
+        // Given
+        val userId = UserId.generate()
+        val postCount = 100
+        val posts = (1..postCount).map { createValidPost(likeCount = it.toLong()) }
+        val likes = posts.map { createValidLike(postId = it.id, userId = userId) }
+
+        every { likeRepository.findByUserId(userId) } returns likes
+        every { likeRepository.countByUserId(userId) } returns postCount.toLong()
+
+        // When
+        val userLikes = likeService.getLikesByUser(userId)
+        val likeCount = likeService.getLikeCountByUser(userId)
+
+        // Then
+        userLikes shouldHaveSize postCount
+        likeCount shouldBe postCount.toLong()
+        userLikes.forEach { like ->
+            like.userId shouldBe userId
+            like.postId shouldNotBe null
+        }
+    }
+
+    @Test
+    fun `should handle post with massive like count and verify performance`() {
+        // Given
+        val postId = PostId.generate()
+        val massiveLikeCount = 1_000_000L
+        val post = createValidPost(postId = postId, likeCount = massiveLikeCount)
+        val likes = (1..1000).map { 
+            createValidLike(postId = postId, userId = UserId.generate()) 
+        }
+
+        every { likeRepository.findByPostId(postId) } returns likes
+        every { likeRepository.countByPostId(postId) } returns massiveLikeCount
+
+        // When
+        val startTime = System.currentTimeMillis()
+        val postLikes = likeService.getLikesForPost(postId)
+        val likeCount = likeService.getLikeCountForPost(postId)
+        val endTime = System.currentTimeMillis()
+
+        // Then
+        postLikes shouldHaveSize 1000
+        likeCount shouldBe massiveLikeCount
+        val executionTime = endTime - startTime
+        // Verify reasonable performance (should complete within 100ms)
+        assert(executionTime < 100) { "Operation took too long: ${executionTime}ms" }
+    }
+
+    @Test
+    fun `should handle complex scenario with multiple users and posts interaction`() {
+        // Given
+        val users = (1..5).map { UserId.generate() }
+        val posts = (1..3).map { createValidPost(likeCount = 0) }
+        val allCombinations = users.flatMap { user -> posts.map { post -> user to post } }
+
+        // Mock all combinations
+        allCombinations.forEach { (userId, post) ->
+            every { postRepository.findById(post.id) } returns post
+            every { likeRepository.existsByPostIdAndUserId(post.id, userId) } returns false
+            every { likeRepository.save(any()) } returns createValidLike(postId = post.id, userId = userId)
+            every { postRepository.save(any()) } returns post.incrementLikeCount()
+        }
+
+        // When - Each user likes each post
+        val results = allCombinations.map { (userId, post) ->
+            likeService.likePost(post.id, userId)
+        }
+
+        // Then
+        results shouldHaveSize 15 // 5 users × 3 posts
+        results.forEach { like ->
+            like.postId shouldNotBe null
+            like.userId shouldNotBe null
+        }
+
+        // Verify each post was saved multiple times (once per like)
+        posts.forEach { post ->
+            verify(exactly = 5) { postRepository.save(match { it.id == post.id }) }
+        }
+    }
+
     private fun createValidPost(
         postId: PostId = PostId.generate(),
         likeCount: Long = 0
@@ -292,5 +544,16 @@ class LikeServiceTest {
             updatedAt = LocalDateTime.now()
         )
     }
-}
 
+    private fun createValidLike(
+        postId: PostId = PostId.generate(),
+        userId: UserId = UserId.generate()
+    ): Like {
+        return Like(
+            id = LikeId.generate(),
+            postId = postId,
+            userId = userId,
+            createdAt = LocalDateTime.now()
+        )
+    }
+}
