@@ -1,6 +1,9 @@
 package com.example.vibecoding.integration
 
+import com.example.vibecoding.application.post.DuplicateLikeException
+import com.example.vibecoding.application.post.LikeNotFoundException
 import com.example.vibecoding.application.post.LikeService
+import com.example.vibecoding.application.post.PostNotFoundException
 import com.example.vibecoding.application.post.PostService
 import com.example.vibecoding.domain.category.CategoryId
 import com.example.vibecoding.domain.post.*
@@ -322,4 +325,3 @@ class LikeFeatureIntegrationTest {
         )
     }
 }
-

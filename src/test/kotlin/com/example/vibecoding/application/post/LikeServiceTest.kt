@@ -474,7 +474,6 @@ class LikeServiceTest {
         // Given
         val postId = PostId.generate()
         val massiveLikeCount = 1_000_000L
-        val post = createValidPost(postId = postId, likeCount = massiveLikeCount)
         val likes = (1..1000).map { 
             createValidLike(postId = postId, userId = UserId.generate()) 
         }
