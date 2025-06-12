@@ -10,11 +10,12 @@ import com.example.vibecoding.domain.user.User
 import com.example.vibecoding.domain.user.UserId
 import com.example.vibecoding.domain.user.UserRepository
 import com.example.vibecoding.domain.category.CategoryId
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import io.mockk.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
-import org.junit.jupiter.api.Assertions.*
-import org.mockito.kotlin.*
 import java.time.LocalDateTime
 
 class CommentServiceTest {
@@ -34,9 +35,9 @@ class CommentServiceTest {
 
     @BeforeEach
     fun setUp() {
-        commentRepository = mock()
-        postRepository = mock()
-        userRepository = mock()
+        commentRepository = mockk()
+        postRepository = mockk()
+        userRepository = mockk()
         commentService = CommentService(commentRepository, postRepository, userRepository)
 
         testUser = User(
@@ -63,54 +64,98 @@ class CommentServiceTest {
     @Test
     fun `should create comment successfully`() {
         // Given
-        whenever(postRepository.findById(postId)).thenReturn(testPost)
-        whenever(userRepository.findById(userId)).thenReturn(testUser)
-        whenever(commentRepository.save(any<Comment>())).thenAnswer { it.arguments[0] as Comment }
+        every { postRepository.findById(postId) } returns testPost
+        every { userRepository.findById(userId) } returns testUser
+        every { commentRepository.save(any<Comment>()) } answers { firstArg() }
 
         // When
         val result = commentService.createComment(validContent, userId, postId)
 
         // Then
-        assertEquals(validContent, result.content)
-        assertEquals(userId, result.authorId)
-        assertEquals(postId, result.postId)
-        assertNull(result.parentCommentId)
-        assertTrue(result.isRootComment())
+        result.content shouldBe validContent
+        result.authorId shouldBe userId
+        result.postId shouldBe postId
+        result.parentCommentId shouldBe null
+        result.isRootComment() shouldBe true
 
-        verify(postRepository).findById(postId)
-        verify(userRepository).findById(userId)
-        verify(commentRepository).save(any<Comment>())
+        verify { postRepository.findById(postId) }
+        verify { userRepository.findById(userId) }
+        verify { commentRepository.save(any<Comment>()) }
     }
 
     @Test
     fun `should throw exception when creating comment for non-existent post`() {
         // Given
-        whenever(postRepository.findById(postId)).thenReturn(null)
+        every { postRepository.findById(postId) } returns null
 
         // When & Then
-        assertThrows<PostNotFoundException> {
+        shouldThrow<PostNotFoundException> {
             commentService.createComment(validContent, userId, postId)
         }
 
-        verify(postRepository).findById(postId)
-        verifyNoInteractions(userRepository)
-        verifyNoInteractions(commentRepository)
+        verify { postRepository.findById(postId) }
     }
 
     @Test
     fun `should throw exception when creating comment for non-existent user`() {
         // Given
-        whenever(postRepository.findById(postId)).thenReturn(testPost)
-        whenever(userRepository.findById(userId)).thenReturn(null)
+        every { postRepository.findById(postId) } returns testPost
+        every { userRepository.findById(userId) } returns null
 
         // When & Then
-        assertThrows<UserNotFoundException> {
+        shouldThrow<UserNotFoundException> {
             commentService.createComment(validContent, userId, postId)
         }
 
-        verify(postRepository).findById(postId)
-        verify(userRepository).findById(userId)
-        verifyNoInteractions(commentRepository)
+        verify { postRepository.findById(postId) }
+        verify { userRepository.findById(userId) }
+    }
+
+    @Test
+    fun `should create reply successfully`() {
+        // Given
+        val parentComment = Comment.createRootComment(
+            id = CommentId.generate(),
+            content = "Parent comment",
+            authorId = userId,
+            postId = postId
+        )
+
+        every { postRepository.findById(postId) } returns testPost
+        every { userRepository.findById(userId) } returns testUser
+        every { commentRepository.findById(parentComment.id) } returns parentComment
+        every { commentRepository.save(any<Comment>()) } answers { firstArg() }
+
+        // When
+        val result = commentService.createReply(validContent, userId, postId, parentComment.id)
+
+        // Then
+        result.content shouldBe validContent
+        result.authorId shouldBe userId
+        result.postId shouldBe postId
+        result.parentCommentId shouldBe parentComment.id
+        result.isReply() shouldBe true
+
+        verify { postRepository.findById(postId) }
+        verify { userRepository.findById(userId) }
+        verify { commentRepository.findById(parentComment.id) }
+        verify { commentRepository.save(any<Comment>()) }
+    }
+
+    @Test
+    fun `should throw exception when creating reply to non-existent parent comment`() {
+        // Given
+        val nonExistentParentId = CommentId.generate()
+        every { postRepository.findById(postId) } returns testPost
+        every { userRepository.findById(userId) } returns testUser
+        every { commentRepository.findById(nonExistentParentId) } returns null
+
+        // When & Then
+        shouldThrow<CommentNotFoundException> {
+            commentService.createReply(validContent, userId, postId, nonExistentParentId)
+        }
+
+        verify { commentRepository.findById(nonExistentParentId) }
     }
 
     @Test
@@ -123,67 +168,117 @@ class CommentServiceTest {
             postId = postId
         )
 
-        whenever(commentRepository.findById(commentId)).thenReturn(comment)
+        every { commentRepository.findById(commentId) } returns comment
 
         // When
         val result = commentService.getComment(commentId)
 
         // Then
-        assertEquals(comment, result)
-        verify(commentRepository).findById(commentId)
+        result shouldBe comment
+        verify { commentRepository.findById(commentId) }
     }
 
     @Test
     fun `should throw exception when getting non-existent comment`() {
         // Given
-        whenever(commentRepository.findById(commentId)).thenReturn(null)
+        every { commentRepository.findById(commentId) } returns null
 
         // When & Then
-        assertThrows<CommentNotFoundException> {
+        shouldThrow<CommentNotFoundException> {
             commentService.getComment(commentId)
         }
 
-        verify(commentRepository).findById(commentId)
+        verify { commentRepository.findById(commentId) }
     }
 
     @Test
     fun `should get comment count for post`() {
         // Given
         val expectedCount = 5L
-        whenever(commentRepository.countByPostId(postId)).thenReturn(expectedCount)
+        every { commentRepository.countByPostId(postId) } returns expectedCount
 
         // When
         val result = commentService.getCommentCountForPost(postId)
 
         // Then
-        assertEquals(expectedCount, result)
-        verify(commentRepository).countByPostId(postId)
+        result shouldBe expectedCount
+        verify { commentRepository.countByPostId(postId) }
     }
 
     @Test
     fun `should check if comment exists`() {
         // Given
-        whenever(commentRepository.existsById(commentId)).thenReturn(true)
+        every { commentRepository.existsById(commentId) } returns true
 
         // When
         val result = commentService.commentExists(commentId)
 
         // Then
-        assertTrue(result)
-        verify(commentRepository).existsById(commentId)
+        result shouldBe true
+        verify { commentRepository.existsById(commentId) }
     }
 
     @Test
     fun `should return false when comment does not exist`() {
         // Given
-        whenever(commentRepository.existsById(commentId)).thenReturn(false)
+        every { commentRepository.existsById(commentId) } returns false
 
         // When
         val result = commentService.commentExists(commentId)
 
         // Then
-        assertFalse(result)
-        verify(commentRepository).existsById(commentId)
+        result shouldBe false
+        verify { commentRepository.existsById(commentId) }
+    }
+
+    @Test
+    fun `should get comments for post with replies`() {
+        // Given
+        val rootComment1 = Comment.createRootComment(
+            id = CommentId.generate(),
+            content = "Root comment 1",
+            authorId = userId,
+            postId = postId
+        )
+        val rootComment2 = Comment.createRootComment(
+            id = CommentId.generate(),
+            content = "Root comment 2",
+            authorId = userId,
+            postId = postId
+        )
+        val reply1 = Comment.createReply(
+            id = CommentId.generate(),
+            content = "Reply to comment 1",
+            authorId = userId,
+            postId = postId,
+            parentComment = rootComment1
+        )
+
+        every { postRepository.findById(postId) } returns testPost
+        every { commentRepository.findRootCommentsByPostId(postId) } returns listOf(rootComment1, rootComment2)
+        every { commentRepository.findRepliesByParentCommentId(rootComment1.id) } returns listOf(reply1)
+        every { commentRepository.findRepliesByParentCommentId(rootComment2.id) } returns emptyList()
+
+        // When
+        val result = commentService.getCommentsForPost(postId)
+
+        // Then
+        result.size shouldBe 2
+        
+        val firstCommentWithReplies = result.find { it.comment.id == rootComment1.id }
+        firstCommentWithReplies shouldNotBe null
+        firstCommentWithReplies!!.comment shouldBe rootComment1
+        firstCommentWithReplies.replies.size shouldBe 1
+        firstCommentWithReplies.replies[0] shouldBe reply1
+
+        val secondCommentWithReplies = result.find { it.comment.id == rootComment2.id }
+        secondCommentWithReplies shouldNotBe null
+        secondCommentWithReplies!!.comment shouldBe rootComment2
+        secondCommentWithReplies.replies.size shouldBe 0
+
+        verify { postRepository.findById(postId) }
+        verify { commentRepository.findRootCommentsByPostId(postId) }
+        verify { commentRepository.findRepliesByParentCommentId(rootComment1.id) }
+        verify { commentRepository.findRepliesByParentCommentId(rootComment2.id) }
     }
 }
-

@@ -1,6 +1,7 @@
 package com.example.vibecoding.presentation.controller
 
 import com.example.vibecoding.application.comment.CommentService
+import com.example.vibecoding.application.comment.CommentWithReplies
 import com.example.vibecoding.domain.comment.Comment
 import com.example.vibecoding.domain.comment.CommentId
 import com.example.vibecoding.domain.post.PostId
@@ -32,12 +33,6 @@ class CommentControllerTest {
     private val postId = PostId.generate()
     private val commentId = CommentId.generate()
     private val validContent = "This is a valid comment"
-
-    // Temporarily disabled due to test issues
-    // @Test
-    // fun `should create comment successfully`() {
-    //     // Test implementation here
-    // }
 
     @Test
     fun `should get comment successfully`() {
@@ -88,4 +83,40 @@ class CommentControllerTest {
 
         verify(commentService).commentExists(commentId)
     }
+
+    @Test
+    fun `should get comments for post successfully`() {
+        // Given
+        val rootComment = Comment.createRootComment(
+            id = commentId,
+            content = validContent,
+            authorId = userId,
+            postId = postId
+        )
+        val reply = Comment.createReply(
+            id = CommentId.generate(),
+            content = "Reply content",
+            authorId = userId,
+            postId = postId,
+            parentComment = rootComment
+        )
+        val commentWithReplies = CommentWithReplies(rootComment, listOf(reply))
+
+        whenever(commentService.getCommentsForPost(postId)).thenReturn(listOf(commentWithReplies))
+        whenever(commentService.getCommentCountForPost(postId)).thenReturn(2L)
+
+        // When & Then
+        mockMvc.perform(get("/api/comments/posts/{postId}", postId.value.toString()))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.postId").value(postId.value.toString()))
+            .andExpect(jsonPath("$.totalCommentCount").value(2))
+            .andExpect(jsonPath("$.comments").isArray)
+            .andExpect(jsonPath("$.comments[0].comment.id").value(commentId.value.toString()))
+            .andExpect(jsonPath("$.comments[0].replies").isArray)
+            .andExpect(jsonPath("$.comments[0].replyCount").value(1))
+
+        verify(commentService).getCommentsForPost(postId)
+        verify(commentService).getCommentCountForPost(postId)
+    }
 }
+

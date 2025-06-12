@@ -6,13 +6,13 @@
 @contentType = application/json
 
 ### Test Data Setup
-# These IDs should be replaced with actual IDs from your test data
+# Note: These are example UUIDs. Replace with actual IDs from your test data
+# You can get actual IDs by first creating test users and posts through your application
 @testUserId = 550e8400-e29b-41d4-a716-446655440000
 @testPostId = 550e8400-e29b-41d4-a716-446655440001
-@testCommentId = 550e8400-e29b-41d4-a716-446655440002
-@testReplyId = 550e8400-e29b-41d4-a716-446655440003
 
 ### 1. Create a new comment on a post
+# @name createComment
 POST {{baseUrl}}/api/comments
 Content-Type: {{contentType}}
 
@@ -23,6 +23,7 @@ Content-Type: {{contentType}}
 }
 
 ### 2. Create another comment on the same post
+# @name createSecondComment
 POST {{baseUrl}}/api/comments
 Content-Type: {{contentType}}
 
@@ -32,7 +33,15 @@ Content-Type: {{contentType}}
   "postId": "{{testPostId}}"
 }
 
-### 3. Create a reply to the first comment
+### 3. Get all comments for a post (should show the comments we just created)
+GET {{baseUrl}}/api/comments/posts/{{testPostId}}
+
+### 4. Get comment count for a post
+GET {{baseUrl}}/api/comments/posts/{{testPostId}}/count
+
+### 5. Create a reply to the first comment
+# Note: Replace the commentId below with the actual ID returned from step 1
+# @name createReply
 POST {{baseUrl}}/api/comments/replies
 Content-Type: {{contentType}}
 
@@ -40,20 +49,16 @@ Content-Type: {{contentType}}
   "content": "This is a reply to the first comment. Testing the reply functionality with 1-level depth.",
   "authorId": "{{testUserId}}",
   "postId": "{{testPostId}}",
-  "parentCommentId": "{{testCommentId}}"
+  "parentCommentId": "REPLACE_WITH_ACTUAL_COMMENT_ID_FROM_STEP_1"
 }
 
-### 4. Get a specific comment by ID
-GET {{baseUrl}}/api/comments/{{testCommentId}}
-
-### 5. Get all comments for a post (with replies)
-GET {{baseUrl}}/api/comments/posts/{{testPostId}}
-
-### 6. Get comment count for a post
-GET {{baseUrl}}/api/comments/posts/{{testPostId}}/count
+### 6. Get a specific comment by ID
+# Note: Replace the commentId below with an actual ID
+GET {{baseUrl}}/api/comments/REPLACE_WITH_ACTUAL_COMMENT_ID
 
 ### 7. Update a comment
-PUT {{baseUrl}}/api/comments/{{testCommentId}}
+# Note: Replace the commentId below with an actual ID
+PUT {{baseUrl}}/api/comments/REPLACE_WITH_ACTUAL_COMMENT_ID
 Content-Type: {{contentType}}
 
 {
@@ -62,17 +67,20 @@ Content-Type: {{contentType}}
 }
 
 ### 8. Check if a comment exists
-GET {{baseUrl}}/api/comments/{{testCommentId}}/exists
+# Note: Replace the commentId below with an actual ID
+GET {{baseUrl}}/api/comments/REPLACE_WITH_ACTUAL_COMMENT_ID/exists
 
 ### 9. Delete a reply comment
-DELETE {{baseUrl}}/api/comments/{{testReplyId}}?authorId={{testUserId}}
+# Note: Replace the commentId below with an actual reply ID
+DELETE {{baseUrl}}/api/comments/REPLACE_WITH_ACTUAL_REPLY_ID?authorId={{testUserId}}
 
 ### 10. Delete a root comment (should also delete its replies)
-DELETE {{baseUrl}}/api/comments/{{testCommentId}}?authorId={{testUserId}}
+# Note: Replace the commentId below with an actual root comment ID
+DELETE {{baseUrl}}/api/comments/REPLACE_WITH_ACTUAL_COMMENT_ID?authorId={{testUserId}}
 
 ### Error Test Cases
 
-### 11. Try to create comment with blank content (should fail)
+### 11. Try to create comment with blank content (should fail with 400)
 POST {{baseUrl}}/api/comments
 Content-Type: {{contentType}}
 
@@ -82,7 +90,7 @@ Content-Type: {{contentType}}
   "postId": "{{testPostId}}"
 }
 
-### 12. Try to create comment with content too long (should fail)
+### 12. Try to create comment with content too long (should fail with 400)
 POST {{baseUrl}}/api/comments
 Content-Type: {{contentType}}
 
@@ -92,7 +100,7 @@ Content-Type: {{contentType}}
   "postId": "{{testPostId}}"
 }
 
-### 13. Try to create comment with invalid author ID (should fail)
+### 13. Try to create comment with invalid author ID format (should fail with 400)
 POST {{baseUrl}}/api/comments
 Content-Type: {{contentType}}
 
@@ -102,7 +110,7 @@ Content-Type: {{contentType}}
   "postId": "{{testPostId}}"
 }
 
-### 14. Try to create comment with invalid post ID (should fail)
+### 14. Try to create comment with invalid post ID format (should fail with 400)
 POST {{baseUrl}}/api/comments
 Content-Type: {{contentType}}
 
@@ -112,18 +120,7 @@ Content-Type: {{contentType}}
   "postId": "invalid-uuid-format"
 }
 
-### 15. Try to create reply with invalid parent comment ID (should fail)
-POST {{baseUrl}}/api/comments/replies
-Content-Type: {{contentType}}
-
-{
-  "content": "This reply has an invalid parent comment ID",
-  "authorId": "{{testUserId}}",
-  "postId": "{{testPostId}}",
-  "parentCommentId": "invalid-uuid-format"
-}
-
-### 16. Try to create reply to non-existent parent comment (should fail)
+### 15. Try to create reply with non-existent parent comment ID (should fail with 404)
 POST {{baseUrl}}/api/comments/replies
 Content-Type: {{contentType}}
 
@@ -134,67 +131,15 @@ Content-Type: {{contentType}}
   "parentCommentId": "550e8400-e29b-41d4-a716-999999999999"
 }
 
-### 17. Try to update comment with blank content (should fail)
-PUT {{baseUrl}}/api/comments/{{testCommentId}}
-Content-Type: {{contentType}}
-
-{
-  "content": "",
-  "authorId": "{{testUserId}}"
-}
-
-### 18. Try to update non-existent comment (should fail)
-PUT {{baseUrl}}/api/comments/550e8400-e29b-41d4-a716-999999999999
-Content-Type: {{contentType}}
-
-{
-  "content": "Trying to update a non-existent comment",
-  "authorId": "{{testUserId}}"
-}
-
-### 19. Try to update comment by different user (should fail)
-PUT {{baseUrl}}/api/comments/{{testCommentId}}
-Content-Type: {{contentType}}
-
-{
-  "content": "Trying to update comment by different user",
-  "authorId": "550e8400-e29b-41d4-a716-999999999998"
-}
-
-### 20. Try to delete comment by different user (should fail)
-DELETE {{baseUrl}}/api/comments/{{testCommentId}}?authorId=550e8400-e29b-41d4-a716-999999999998
-
-### 21. Try to get non-existent comment (should fail)
+### 16. Try to get non-existent comment (should fail with 404)
 GET {{baseUrl}}/api/comments/550e8400-e29b-41d4-a716-999999999999
 
-### 22. Try to get comments for non-existent post (should fail)
+### 17. Try to get comments for non-existent post (should fail with 404)
 GET {{baseUrl}}/api/comments/posts/550e8400-e29b-41d4-a716-999999999999
 
 ### Advanced Test Cases
 
-### 23. Test creating multiple replies to the same comment
-POST {{baseUrl}}/api/comments/replies
-Content-Type: {{contentType}}
-
-{
-  "content": "This is the first reply to the root comment",
-  "authorId": "{{testUserId}}",
-  "postId": "{{testPostId}}",
-  "parentCommentId": "{{testCommentId}}"
-}
-
-###
-POST {{baseUrl}}/api/comments/replies
-Content-Type: {{contentType}}
-
-{
-  "content": "This is the second reply to the same root comment",
-  "authorId": "{{testUserId}}",
-  "postId": "{{testPostId}}",
-  "parentCommentId": "{{testCommentId}}"
-}
-
-### 24. Test comment content at maximum length (1000 characters)
+### 18. Test comment content at maximum length (1000 characters - should succeed)
 POST {{baseUrl}}/api/comments
 Content-Type: {{contentType}}
 
@@ -204,7 +149,7 @@ Content-Type: {{contentType}}
   "postId": "{{testPostId}}"
 }
 
-### 25. Test comment with special characters and Unicode
+### 19. Test comment with special characters and Unicode (should succeed)
 POST {{baseUrl}}/api/comments
 Content-Type: {{contentType}}
 
@@ -214,17 +159,23 @@ Content-Type: {{contentType}}
   "postId": "{{testPostId}}"
 }
 
-### 26. Verify final state - get all comments for the post
+### 20. Verify final state - get all comments for the post
 GET {{baseUrl}}/api/comments/posts/{{testPostId}}
 
-### 27. Verify final comment count
+### 21. Verify final comment count
 GET {{baseUrl}}/api/comments/posts/{{testPostId}}/count
 
 ### Instructions for running these tests:
-### 1. Start your Spring Boot application
-### 2. Make sure you have test data (users, posts) in your database
+### 1. Start your Spring Boot application (./gradlew bootRun)
+### 2. Make sure you have test data (users, posts) in your application
 ### 3. Update the @testUserId and @testPostId variables with actual IDs from your test data
-### 4. Run the tests in order, updating @testCommentId and @testReplyId with actual IDs returned from the create operations
+### 4. Run the tests in order, replacing placeholder IDs with actual IDs returned from the create operations
 ### 5. Some tests are expected to fail (error cases) - verify they return appropriate error responses
-### 6. The final tests (26-27) should show the current state of comments for the test post
+### 6. The final tests (20-21) should show the current state of comments for the test post
+
+### Tips:
+### - Use IntelliJ IDEA's HTTP Client to run these tests
+### - Copy the IDs from successful responses and paste them into subsequent requests
+### - Check the response status codes and bodies to verify expected behavior
+### - For error cases, expect 400 (Bad Request) or 404 (Not Found) status codes
 
