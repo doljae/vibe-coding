@@ -590,6 +590,7 @@ class PostTest {
             content = "Test content",
             authorId = UserId.generate(),
             categoryId = CategoryId.generate(),
+            imageAttachments = emptyList(),
             createdAt = LocalDateTime.now(),
             updatedAt = LocalDateTime.now()
         )

@@ -309,7 +309,7 @@ class InMemoryLikeRepositoryTest {
         val originalLike = createValidLike()
         repository.save(originalLike)
 
-        val updatedLike = originalLike.copy(createdAt = LocalDateTime.now().plusMinutes(1))
+        val updatedLike = originalLike.copy(createdAt = LocalDateTime.now().minusMinutes(1))
 
         // When
         repository.save(updatedLike)
@@ -334,4 +334,3 @@ class InMemoryLikeRepositoryTest {
         )
     }
 }
-
