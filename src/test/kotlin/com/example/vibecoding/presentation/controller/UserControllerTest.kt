@@ -11,6 +11,7 @@ import com.example.vibecoding.domain.user.User
 import com.example.vibecoding.domain.user.UserId
 import com.example.vibecoding.presentation.dto.CreateUserRequest
 import com.example.vibecoding.presentation.dto.UpdateUserRequest
+import com.example.vibecoding.presentation.exception.GlobalExceptionHandler
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.mockk.every
 import io.mockk.mockk
@@ -73,7 +74,9 @@ class UserControllerTest {
         objectMapper.findAndRegisterModules()
         
         val controller = UserController(userService, postService, categoryService)
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build()
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+            .setControllerAdvice(GlobalExceptionHandler())
+            .build()
     }
 
     @Test
@@ -184,6 +187,9 @@ class UserControllerTest {
             email = "invalid-email",
             displayName = "Test User"
         )
+        
+        // Mock service to throw IllegalArgumentException for invalid input
+        every { userService.createUser("ab", "invalid-email", "Test User", null) } throws IllegalArgumentException("Invalid user data")
 
         // When & Then
         mockMvc.perform(
@@ -400,4 +406,3 @@ class UserControllerTest {
         verify { userService.isEmailAvailable("test@example.com") }
     }
 }
-

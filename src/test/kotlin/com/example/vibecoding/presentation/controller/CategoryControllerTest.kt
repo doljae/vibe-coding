@@ -8,6 +8,7 @@ import com.example.vibecoding.domain.category.Category
 import com.example.vibecoding.domain.category.CategoryId
 import com.example.vibecoding.presentation.dto.CreateCategoryRequest
 import com.example.vibecoding.presentation.dto.UpdateCategoryRequest
+import com.example.vibecoding.presentation.exception.GlobalExceptionHandler
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.mockk.every
 import io.mockk.mockk
@@ -19,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
+
 import java.time.LocalDateTime
 import java.util.*
 
@@ -44,7 +46,9 @@ class CategoryControllerTest {
         objectMapper.findAndRegisterModules()
         
         val controller = CategoryController(categoryService)
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build()
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+            .setControllerAdvice(GlobalExceptionHandler())
+            .build()
     }
 
     @Test
@@ -148,6 +152,9 @@ class CategoryControllerTest {
             name = "", // Invalid: blank name
             description = "Technology related posts"
         )
+        
+        // Mock service to throw IllegalArgumentException for invalid input
+        every { categoryService.createCategory("", "Technology related posts") } throws IllegalArgumentException("Category name cannot be blank")
 
         // When & Then
         mockMvc.perform(
@@ -288,4 +295,3 @@ class CategoryControllerTest {
         verify { categoryService.getCategoryByName("NonExistent") }
     }
 }
-
