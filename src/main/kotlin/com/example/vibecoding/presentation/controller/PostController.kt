@@ -44,6 +44,7 @@ class PostController(
                 author = UserSummaryResponse.from(author),
                 category = CategorySummaryResponse.from(category),
                 imageCount = post.getImageAttachmentCount(),
+                likeCount = post.likeCount,
                 createdAt = post.createdAt,
                 updatedAt = post.updatedAt
             )
@@ -52,12 +53,11 @@ class PostController(
     }
 
     /**
-     * Get post by ID
+     * Get a specific post by ID
      */
     @GetMapping("/{id}")
     fun getPostById(@PathVariable id: String): ResponseEntity<PostResponse> {
-        val postId = PostId.from(id)
-        val post = postService.getPostById(postId)
+        val post = postService.getPostById(PostId.from(id))
         val author = userService.getUserById(post.authorId)
         val category = categoryService.getCategoryById(post.categoryId)
         
@@ -70,9 +70,11 @@ class PostController(
             imageAttachments = post.imageAttachments.map { 
                 ImageAttachmentResponse.from(it, post.id.value.toString()) 
             },
+            likeCount = post.likeCount,
             createdAt = post.createdAt,
             updatedAt = post.updatedAt
         )
+        
         return ResponseEntity.ok(response)
     }
 
@@ -81,14 +83,11 @@ class PostController(
      */
     @PostMapping
     fun createPost(@Valid @RequestBody request: CreatePostRequest): ResponseEntity<PostResponse> {
-        val authorId = UserId.from(request.authorId)
-        val categoryId = CategoryId.from(request.categoryId)
-        
         val post = postService.createPost(
             title = request.title,
             content = request.content,
-            authorId = authorId,
-            categoryId = categoryId
+            authorId = UserId.from(request.authorId),
+            categoryId = CategoryId.from(request.categoryId)
         )
         
         val author = userService.getUserById(post.authorId)
@@ -100,10 +99,14 @@ class PostController(
             content = post.content,
             author = UserSummaryResponse.from(author),
             category = CategorySummaryResponse.from(category),
-            imageAttachments = emptyList(),
+            imageAttachments = post.imageAttachments.map { 
+                ImageAttachmentResponse.from(it, post.id.value.toString()) 
+            },
+            likeCount = post.likeCount,
             createdAt = post.createdAt,
             updatedAt = post.updatedAt
         )
+        
         return ResponseEntity.status(HttpStatus.CREATED).body(response)
     }
 
@@ -160,6 +163,7 @@ class PostController(
                 ImageAttachmentResponse.from(it, post.id.value.toString()) 
             },
             createdAt = post.createdAt,
+            likeCount = post.likeCount,
             updatedAt = post.updatedAt
         )
         return ResponseEntity.status(HttpStatus.CREATED).body(response)
@@ -173,11 +177,10 @@ class PostController(
         @PathVariable id: String,
         @Valid @RequestBody request: UpdatePostRequest
     ): ResponseEntity<PostResponse> {
-        val postId = PostId.from(id)
         val categoryId = request.categoryId?.let { CategoryId.from(it) }
         
         val post = postService.updatePost(
-            id = postId,
+            id = PostId.from(id),
             title = request.title,
             content = request.content,
             categoryId = categoryId
@@ -195,9 +198,11 @@ class PostController(
             imageAttachments = post.imageAttachments.map { 
                 ImageAttachmentResponse.from(it, post.id.value.toString()) 
             },
+            likeCount = post.likeCount,
             createdAt = post.createdAt,
             updatedAt = post.updatedAt
         )
+        
         return ResponseEntity.ok(response)
     }
 
@@ -299,6 +304,7 @@ class PostController(
                 author = UserSummaryResponse.from(author),
                 category = CategorySummaryResponse.from(category),
                 imageCount = post.getImageAttachmentCount(),
+                likeCount = post.likeCount,
                 createdAt = post.createdAt,
                 updatedAt = post.updatedAt
             )
@@ -323,6 +329,7 @@ class PostController(
                 author = UserSummaryResponse.from(author),
                 category = CategorySummaryResponse.from(category),
                 imageCount = post.getImageAttachmentCount(),
+                likeCount = post.likeCount,
                 createdAt = post.createdAt,
                 updatedAt = post.updatedAt
             )
@@ -330,4 +337,3 @@ class PostController(
         return ResponseEntity.ok(response)
     }
 }
-

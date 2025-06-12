@@ -419,6 +419,95 @@ GET {{baseUrl}}/api/posts/{{workflowPostId}}
 Accept: application/json
 
 ###############################################################################
+# LIKE FEATURE TESTS
+###############################################################################
+
+### Like a post using the workflow post
+POST {{baseUrl}}/api/posts/{{workflowPostId}}/like
+Content-Type: application/json
+
+{
+  "userId": "{{workflowUserId}}"
+}
+
+### Check if user has liked the post
+GET {{baseUrl}}/api/likes/posts/{{workflowPostId}}/users/{{workflowUserId}}/status
+Accept: application/json
+
+### Get like count for the post
+GET {{baseUrl}}/api/likes/posts/{{workflowPostId}}/count
+Accept: application/json
+
+### Get all likes for the post
+GET {{baseUrl}}/api/likes/posts/{{workflowPostId}}
+Accept: application/json
+
+### Toggle like (should unlike since we already liked)
+PUT {{baseUrl}}/api/likes/posts/{{workflowPostId}}/users/{{workflowUserId}}/toggle
+Accept: application/json
+
+### Toggle like again (should like again)
+PUT {{baseUrl}}/api/likes/posts/{{workflowPostId}}/users/{{workflowUserId}}/toggle
+Accept: application/json
+
+### Unlike the post
+DELETE {{baseUrl}}/api/posts/{{workflowPostId}}/like?userId={{workflowUserId}}
+
+### Verify post was unliked
+GET {{baseUrl}}/api/likes/posts/{{workflowPostId}}/users/{{workflowUserId}}/status
+Accept: application/json
+
+### Get updated post (should show likeCount = 0)
+GET {{baseUrl}}/api/posts/{{workflowPostId}}
+Accept: application/json
+
+### Test multiple users liking the same post
+# Create another user for testing
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "username": "liketest2",
+  "email": "liketest2@example.com",
+  "displayName": "Like Test User 2",
+  "bio": "Second user for like testing"
+}
+
+### User 1 likes the post
+POST {{baseUrl}}/api/likes/posts/{{workflowPostId}}/users/{{workflowUserId}}
+
+### User 2 likes the same post (replace USER2_ID with actual ID from above response)
+POST {{baseUrl}}/api/likes/posts/{{workflowPostId}}/users/USER2_ID
+
+### Check final like count (should be 2)
+GET {{baseUrl}}/api/likes/posts/{{workflowPostId}}/count
+Accept: application/json
+
+### Get all likes for the post (should show 2 likes)
+GET {{baseUrl}}/api/likes/posts/{{workflowPostId}}
+Accept: application/json
+
+### Get all posts (should show likeCount in responses)
+GET {{baseUrl}}/api/posts
+Accept: application/json
+
+###############################################################################
+# LIKE FEATURE ERROR TESTING
+###############################################################################
+
+### Test duplicate like (should fail)
+POST {{baseUrl}}/api/likes/posts/{{workflowPostId}}/users/{{workflowUserId}}
+
+### Test liking non-existent post
+POST {{baseUrl}}/api/likes/posts/00000000-0000-0000-0000-000000000000/users/{{workflowUserId}}
+
+### Test liking with non-existent user
+POST {{baseUrl}}/api/likes/posts/{{workflowPostId}}/users/00000000-0000-0000-0000-000000000000
+
+### Test unliking non-existent like
+DELETE {{baseUrl}}/api/likes/posts/{{workflowPostId}}/users/00000000-0000-0000-0000-000000000000
+
+###############################################################################
 # NOTES FOR USAGE
 ###############################################################################
 
@@ -429,4 +518,6 @@ Accept: application/json
 # 5. Use your IDE's HTTP client features to save variables between requests
 # 6. Monitor the application logs to see the API calls being processed
 # 7. Check the Swagger UI at http://localhost:8080/swagger-ui.html for API documentation
-
+# 8. For like feature tests, ensure you have valid user and post IDs
+# 9. The like feature includes comprehensive error handling for edge cases
+# 10. All post responses now include likeCount field for consistency

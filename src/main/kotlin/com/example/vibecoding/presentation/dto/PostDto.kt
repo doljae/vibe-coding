@@ -48,6 +48,7 @@ data class PostResponse(
     val author: UserSummaryResponse,
     val category: CategorySummaryResponse,
     val imageAttachments: List<ImageAttachmentResponse>,
+    val likeCount: Long,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
 )
@@ -61,6 +62,7 @@ data class PostSummaryResponse(
     val author: UserSummaryResponse,
     val category: CategorySummaryResponse,
     val imageCount: Int,
+    val likeCount: Long,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
 )
@@ -96,4 +98,3 @@ data class PostSearchRequest(
     val authorId: String? = null,
     val categoryId: String? = null
 )
-

@@ -14,16 +14,16 @@ import io.mockk.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.io.ByteArrayInputStream
-import java.io.InputStream
 import java.time.LocalDateTime
 
 class PostServiceTest {
 
-    private lateinit var postService: PostService
     private lateinit var postRepository: PostRepository
     private lateinit var categoryRepository: CategoryRepository
     private lateinit var userRepository: UserRepository
     private lateinit var imageStorageService: ImageStorageService
+    private lateinit var likeRepository: LikeRepository
+    private lateinit var postService: PostService
 
     private lateinit var testUser: User
     private lateinit var testCategory: Category
@@ -34,8 +34,9 @@ class PostServiceTest {
         categoryRepository = mockk()
         userRepository = mockk()
         imageStorageService = mockk()
+        likeRepository = mockk()
         
-        postService = PostService(postRepository, categoryRepository, userRepository, imageStorageService)
+        postService = PostService(postRepository, categoryRepository, userRepository, imageStorageService, likeRepository)
 
         testUser = User(
             id = UserId.generate(),

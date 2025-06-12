@@ -15,6 +15,7 @@ data class Post(
     val authorId: UserId,
     val categoryId: CategoryId,
     val imageAttachments: List<ImageAttachment> = emptyList(),
+    val likeCount: Long = 0,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
 ) {
@@ -29,6 +30,7 @@ data class Post(
         require(content.length <= 10000) { "Post content cannot exceed 10000 characters" }
         require(imageAttachments.size <= MAX_IMAGES_PER_POST) { "Post cannot have more than $MAX_IMAGES_PER_POST images" }
         require(imageAttachments.distinctBy { it.id }.size == imageAttachments.size) { "Post cannot have duplicate image attachments" }
+        require(likeCount >= 0) { "Like count cannot be negative" }
     }
 
     fun updateTitle(newTitle: String): Post {
@@ -123,6 +125,47 @@ data class Post(
      */
     fun getRemainingImageSlots(): Int {
         return MAX_IMAGES_PER_POST - imageAttachments.size
+    }
+
+    /**
+     * Update the like count for this post
+     */
+    fun updateLikeCount(newLikeCount: Long): Post {
+        require(newLikeCount >= 0) { "Like count cannot be negative" }
+        
+        return copy(
+            likeCount = newLikeCount,
+            updatedAt = LocalDateTime.now()
+        )
+    }
+
+    /**
+     * Increment the like count
+     */
+    fun incrementLikeCount(): Post {
+        return copy(
+            likeCount = likeCount + 1,
+            updatedAt = LocalDateTime.now()
+        )
+    }
+
+    /**
+     * Decrement the like count
+     */
+    fun decrementLikeCount(): Post {
+        require(likeCount > 0) { "Cannot decrement like count below zero" }
+        
+        return copy(
+            likeCount = likeCount - 1,
+            updatedAt = LocalDateTime.now()
+        )
+    }
+
+    /**
+     * Check if the post has any likes
+     */
+    fun hasLikes(): Boolean {
+        return likeCount > 0
     }
 }
 

@@ -15,6 +15,7 @@ import com.example.vibecoding.domain.user.User
 import com.example.vibecoding.domain.user.UserId
 import com.example.vibecoding.presentation.dto.CreatePostRequest
 import com.example.vibecoding.presentation.dto.UpdatePostRequest
+import com.example.vibecoding.presentation.exception.GlobalExceptionHandler
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.mockk.every
 import io.mockk.mockk
@@ -88,7 +89,9 @@ class PostControllerTest {
         objectMapper.findAndRegisterModules()
         
         val controller = PostController(postService, userService, categoryService)
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build()
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+            .setControllerAdvice(GlobalExceptionHandler())
+            .build()
     }
 
     @Test
@@ -214,6 +217,9 @@ class PostControllerTest {
             authorId = testUserId.value.toString(),
             categoryId = testCategoryId.value.toString()
         )
+        
+        // Mock service to throw IllegalArgumentException for invalid input
+        every { postService.createPost("", "Test content", testUserId, testCategoryId) } throws IllegalArgumentException("Post title cannot be blank")
 
         // When & Then
         mockMvc.perform(
@@ -234,7 +240,7 @@ class PostControllerTest {
             "test image content".toByteArray()
         )
         
-        every { postService.createPostWithImages(any(), any(), any(), any(), any()) } returns testPost
+        every { postService.createPostWithImages("Test Post", "Test content", testUserId, testCategoryId, any()) } returns testPost
         every { userService.getUserById(testUserId) } returns testUser
         every { categoryService.getCategoryById(testCategoryId) } returns testCategory
 
@@ -254,7 +260,7 @@ class PostControllerTest {
             .andExpect(jsonPath("$.imageAttachments").isArray)
             .andExpect(jsonPath("$.imageAttachments[0].filename").value("test.jpg"))
 
-        verify { postService.createPostWithImages(any(), any(), any(), any(), any()) }
+        verify { postService.createPostWithImages("Test Post", "Test content", testUserId, testCategoryId, any()) }
         verify { userService.getUserById(testUserId) }
         verify { categoryService.getCategoryById(testCategoryId) }
     }
@@ -344,7 +350,7 @@ class PostControllerTest {
             "test image content".toByteArray()
         )
         
-        every { postService.attachImageToPost(any(), any()) } returns testPost
+        every { postService.attachImageToPost(testPostId, any()) } returns testPost
 
         // When & Then
         mockMvc.perform(
@@ -356,7 +362,7 @@ class PostControllerTest {
             .andExpect(jsonPath("$.filename").value("test.jpg"))
             .andExpect(jsonPath("$.contentType").value("image/jpeg"))
 
-        verify { postService.attachImageToPost(any(), any()) }
+        verify { postService.attachImageToPost(testPostId, any()) }
     }
 
     @Test
@@ -369,7 +375,7 @@ class PostControllerTest {
             "test image content".toByteArray()
         )
         
-        every { postService.attachImageToPost(any(), any()) } throws 
+        every { postService.attachImageToPost(testPostId, any()) } throws 
             ImageAttachmentException("Maximum images exceeded")
 
         // When & Then
@@ -379,7 +385,7 @@ class PostControllerTest {
         )
             .andExpect(status().isBadRequest)
 
-        verify { postService.attachImageToPost(any(), any()) }
+        verify { postService.attachImageToPost(testPostId, any()) }
     }
 
     @Test
@@ -499,4 +505,3 @@ class PostControllerTest {
         verify { userService.getUserById(testUserId) }
     }
 }
-

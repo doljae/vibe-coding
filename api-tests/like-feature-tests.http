@@ -1,0 +1,448 @@
+###
+# Like Feature REST API Test Scripts
+# 
+# This file contains comprehensive HTTP requests for testing the like feature APIs
+# Make sure the application is running on http://localhost:8080 before executing these requests
+#
+# Test Scenarios Covered:
+# 1. Basic like/unlike operations
+# 2. Complex user interactions
+# 3. Edge cases and error handling
+# 4. Performance and stress testing
+# 5. Data consistency verification
+#
+# Usage:
+# 1. Start the Spring Boot application: ./gradlew bootRun
+# 2. Execute the setup requests first (categories, users, posts)
+# 3. Run like feature tests in sequence
+# 4. Use cleanup requests to reset state
+###
+
+@baseUrl = http://localhost:8080
+
+###############################################################################
+# SETUP - Create test data (Run these first)
+###############################################################################
+
+### Create Technology category
+POST {{baseUrl}}/api/categories
+Content-Type: application/json
+
+{
+  "name": "Technology",
+  "description": "Posts about technology and programming"
+}
+
+### Create Science category  
+POST {{baseUrl}}/api/categories
+Content-Type: application/json
+
+{
+  "name": "Science",
+  "description": "Posts about scientific discoveries"
+}
+
+### Create test user 1
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "username": "testuser1",
+  "email": "testuser1@example.com",
+  "displayName": "Test User 1",
+  "bio": "First test user for like feature testing"
+}
+
+### Create test user 2
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "username": "testuser2", 
+  "email": "testuser2@example.com",
+  "displayName": "Test User 2",
+  "bio": "Second test user for like feature testing"
+}
+
+### Create test user 3
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "username": "testuser3",
+  "email": "testuser3@example.com", 
+  "displayName": "Test User 3",
+  "bio": "Third test user for like feature testing"
+}
+
+### Get all users (to get user IDs for testing)
+GET {{baseUrl}}/api/users
+Accept: application/json
+
+### Get all categories (to get category IDs for testing)
+GET {{baseUrl}}/api/categories
+Accept: application/json
+
+### Create test post 1
+# Replace {userId} and {categoryId} with actual IDs from above responses
+POST {{baseUrl}}/api/posts
+Content-Type: application/json
+
+{
+  "title": "Introduction to Kotlin Programming",
+  "content": "Kotlin is a modern programming language that runs on the JVM. It's fully interoperable with Java and offers many improvements over Java syntax. This post will cover the basics of Kotlin programming including variables, functions, classes, and more advanced features like coroutines.",
+  "authorId": "REPLACE_WITH_USER_ID",
+  "categoryId": "REPLACE_WITH_CATEGORY_ID"
+}
+
+### Create test post 2
+POST {{baseUrl}}/api/posts
+Content-Type: application/json
+
+{
+  "title": "Understanding Spring Boot Architecture",
+  "content": "Spring Boot is a powerful framework that simplifies the development of Java applications. It provides auto-configuration, embedded servers, and production-ready features out of the box. This comprehensive guide covers Spring Boot fundamentals.",
+  "authorId": "REPLACE_WITH_USER_ID",
+  "categoryId": "REPLACE_WITH_CATEGORY_ID"
+}
+
+### Create test post 3
+POST {{baseUrl}}/api/posts
+Content-Type: application/json
+
+{
+  "title": "Advanced Testing Strategies",
+  "content": "Testing is crucial for maintaining code quality and preventing regressions. This post explores advanced testing strategies including unit testing, integration testing, and end-to-end testing with practical examples.",
+  "authorId": "REPLACE_WITH_USER_ID", 
+  "categoryId": "REPLACE_WITH_CATEGORY_ID"
+}
+
+### Get all posts (to get post IDs for like testing)
+GET {{baseUrl}}/api/posts
+Accept: application/json
+
+###############################################################################
+# BASIC LIKE OPERATIONS
+###############################################################################
+
+### Like a post (using LikeController endpoints)
+# Replace {postId} and {userId} with actual IDs
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER_ID
+Content-Type: application/json
+
+### Check like status
+GET {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER_ID/status
+Accept: application/json
+
+### Get like count for post
+GET {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/count
+Accept: application/json
+
+### Get all likes for a post
+GET {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID
+Accept: application/json
+
+### Unlike a post
+DELETE {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER_ID
+
+### Verify post was unliked
+GET {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER_ID/status
+Accept: application/json
+
+###############################################################################
+# ALTERNATIVE LIKE ENDPOINTS (via PostController)
+###############################################################################
+
+### Like a post via PostController
+POST {{baseUrl}}/api/posts/REPLACE_WITH_POST_ID/like
+Content-Type: application/json
+
+{
+  "userId": "REPLACE_WITH_USER_ID"
+}
+
+### Unlike a post via PostController
+DELETE {{baseUrl}}/api/posts/REPLACE_WITH_POST_ID/like?userId=REPLACE_WITH_USER_ID
+
+###############################################################################
+# COMPLEX INTERACTION SCENARIOS
+###############################################################################
+
+### Scenario 1: Multiple users like the same post
+# User 1 likes post
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER1_ID
+
+### User 2 likes the same post
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER2_ID
+
+### User 3 likes the same post
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER3_ID
+
+### Check final like count (should be 3)
+GET {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/count
+Accept: application/json
+
+### Get all likes for the post (should show 3 likes)
+GET {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID
+Accept: application/json
+
+### Scenario 2: One user likes multiple posts
+# User 1 likes post 1
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST1_ID/users/REPLACE_WITH_USER_ID
+
+### User 1 likes post 2
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST2_ID/users/REPLACE_WITH_USER_ID
+
+### User 1 likes post 3
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST3_ID/users/REPLACE_WITH_USER_ID
+
+### Get all likes by user (should show 3 likes)
+GET {{baseUrl}}/api/likes/users/REPLACE_WITH_USER_ID
+Accept: application/json
+
+### Get like count by user (should be 3)
+GET {{baseUrl}}/api/likes/users/REPLACE_WITH_USER_ID/count
+Accept: application/json
+
+### Scenario 3: Toggle like functionality
+# Toggle like (should like the post)
+PUT {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER_ID/toggle
+
+### Toggle like again (should unlike the post)
+PUT {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER_ID/toggle
+
+### Toggle like once more (should like the post again)
+PUT {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER_ID/toggle
+
+### Check final status (should be liked)
+GET {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER_ID/status
+Accept: application/json
+
+###############################################################################
+# ERROR HANDLING AND EDGE CASES
+###############################################################################
+
+### Test 1: Try to like non-existent post
+POST {{baseUrl}}/api/likes/posts/00000000-0000-0000-0000-000000000000/users/REPLACE_WITH_USER_ID
+Content-Type: application/json
+
+### Test 2: Try to like with non-existent user
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+
+### Test 3: Try to like the same post twice (should get duplicate error)
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER_ID
+Content-Type: application/json
+
+### Try to like again (should fail with duplicate error)
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER_ID
+Content-Type: application/json
+
+### Test 4: Try to unlike a post that wasn't liked
+DELETE {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER2_ID
+
+### Test 5: Invalid UUID format
+POST {{baseUrl}}/api/likes/posts/invalid-uuid/users/REPLACE_WITH_USER_ID
+Content-Type: application/json
+
+### Test 6: Empty or malformed requests
+POST {{baseUrl}}/api/posts/REPLACE_WITH_POST_ID/like
+Content-Type: application/json
+
+{
+  "userId": ""
+}
+
+###############################################################################
+# PERFORMANCE AND STRESS TESTING
+###############################################################################
+
+### Rapid like/unlike sequence (execute quickly in succession)
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER_ID
+
+### 
+DELETE {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER_ID
+
+###
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER_ID
+
+###
+DELETE {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER_ID
+
+###
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER_ID
+
+### Check final state after rapid operations
+GET {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER_ID/status
+Accept: application/json
+
+###############################################################################
+# DATA CONSISTENCY VERIFICATION
+###############################################################################
+
+### Get post details (should include likeCount)
+GET {{baseUrl}}/api/posts/REPLACE_WITH_POST_ID
+Accept: application/json
+
+### Get all posts (should include likeCount for all posts)
+GET {{baseUrl}}/api/posts
+Accept: application/json
+
+### Cross-verify like count via different endpoints
+# Method 1: Via like service
+GET {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/count
+Accept: application/json
+
+### Method 2: Via post details (likeCount field)
+GET {{baseUrl}}/api/posts/REPLACE_WITH_POST_ID
+Accept: application/json
+
+### Method 3: Count likes manually
+GET {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID
+Accept: application/json
+
+###############################################################################
+# BULK OPERATIONS TESTING
+###############################################################################
+
+### Create multiple likes for comprehensive testing
+# User 1 likes multiple posts
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST1_ID/users/REPLACE_WITH_USER1_ID
+
+###
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST2_ID/users/REPLACE_WITH_USER1_ID
+
+###
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST3_ID/users/REPLACE_WITH_USER1_ID
+
+### User 2 likes multiple posts
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST1_ID/users/REPLACE_WITH_USER2_ID
+
+###
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST2_ID/users/REPLACE_WITH_USER2_ID
+
+### User 3 likes one post
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST1_ID/users/REPLACE_WITH_USER3_ID
+
+### Verify final state
+# Post 1 should have 3 likes
+GET {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST1_ID/count
+Accept: application/json
+
+### Post 2 should have 2 likes
+GET {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST2_ID/count
+Accept: application/json
+
+### Post 3 should have 1 like
+GET {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST3_ID/count
+Accept: application/json
+
+### User 1 should have 3 likes
+GET {{baseUrl}}/api/likes/users/REPLACE_WITH_USER1_ID/count
+Accept: application/json
+
+### User 2 should have 2 likes
+GET {{baseUrl}}/api/likes/users/REPLACE_WITH_USER2_ID/count
+Accept: application/json
+
+### User 3 should have 1 like
+GET {{baseUrl}}/api/likes/users/REPLACE_WITH_USER3_ID/count
+Accept: application/json
+
+###############################################################################
+# CLEANUP (Optional - run to reset state)
+###############################################################################
+
+### Remove all likes (manual cleanup)
+# Note: There's no bulk delete endpoint, so you'd need to delete individually
+# or restart the application to reset in-memory data
+
+### Get all posts to verify final state
+GET {{baseUrl}}/api/posts
+Accept: application/json
+
+### Get all users to verify final state
+GET {{baseUrl}}/api/users
+Accept: application/json
+
+###############################################################################
+# ADVANCED TESTING SCENARIOS
+###############################################################################
+
+### Test concurrent-like simulation
+# Execute these requests simultaneously (if your HTTP client supports it)
+# or in rapid succession to test race conditions
+
+### Concurrent like attempt 1
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER1_ID
+
+### Concurrent like attempt 2 (different user, same post)
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER2_ID
+
+### Concurrent like attempt 3 (different user, same post)
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID/users/REPLACE_WITH_USER3_ID
+
+### Verify all concurrent likes were processed correctly
+GET {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST_ID
+Accept: application/json
+
+### Test boundary conditions
+# Like a post that already has many likes (if you've run bulk operations above)
+GET {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST1_ID/count
+Accept: application/json
+
+### Add one more like to test incrementing from existing count
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST1_ID/users/REPLACE_WITH_NEW_USER_ID
+
+### Verify the count increased correctly
+GET {{baseUrl}}/api/likes/posts/REPLACE_WITH_POST1_ID/count
+Accept: application/json
+
+###############################################################################
+# INTEGRATION WITH POST RESPONSES
+###############################################################################
+
+### Verify that all post responses include likeCount
+GET {{baseUrl}}/api/posts
+Accept: application/json
+
+### Verify individual post response includes likeCount
+GET {{baseUrl}}/api/posts/REPLACE_WITH_POST_ID
+Accept: application/json
+
+### Create a new post and verify it starts with likeCount = 0
+POST {{baseUrl}}/api/posts
+Content-Type: application/json
+
+{
+  "title": "New Post for Like Count Testing",
+  "content": "This post should start with zero likes",
+  "authorId": "REPLACE_WITH_USER_ID",
+  "categoryId": "REPLACE_WITH_CATEGORY_ID"
+}
+
+### Get the new post and verify likeCount = 0
+# Use the ID from the response above
+GET {{baseUrl}}/api/posts/REPLACE_WITH_NEW_POST_ID
+Accept: application/json
+
+### Like the new post and verify likeCount updates
+POST {{baseUrl}}/api/likes/posts/REPLACE_WITH_NEW_POST_ID/users/REPLACE_WITH_USER_ID
+
+### Get the post again and verify likeCount = 1
+GET {{baseUrl}}/api/posts/REPLACE_WITH_NEW_POST_ID
+Accept: application/json
+
+###############################################################################
+# END OF LIKE FEATURE TESTS
+###############################################################################
+
+# Summary of what to verify:
+# 1. All like operations work correctly
+# 2. Error handling for invalid requests
+# 3. Data consistency across different endpoints
+# 4. Performance under rapid operations
+# 5. Integration with post responses
+# 6. Proper like count tracking and updates
+# 7. Thread safety with concurrent operations
+
