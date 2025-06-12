@@ -3,16 +3,14 @@ package com.example.vibecoding.application.user
 import com.example.vibecoding.domain.user.User
 import com.example.vibecoding.domain.user.UserId
 import com.example.vibecoding.domain.user.UserRepository
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import java.time.LocalDateTime
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 class UserServiceTest {
 
@@ -38,10 +36,10 @@ class UserServiceTest {
 
         val createdUser = userService.createUser(username, email, displayName, bio)
 
-        assertEquals(username, createdUser.username)
-        assertEquals(email, createdUser.email)
-        assertEquals(displayName, createdUser.displayName)
-        assertEquals(bio, createdUser.bio)
+        createdUser.username shouldBe username
+        createdUser.email shouldBe email
+        createdUser.displayName shouldBe displayName
+        createdUser.bio shouldBe bio
 
         verify { userRepository.existsByUsername(username) }
         verify { userRepository.existsByEmail(email) }
@@ -56,7 +54,7 @@ class UserServiceTest {
 
         every { userRepository.existsByUsername(username) } returns true
 
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             userService.createUser(username, email, displayName)
         }
 
@@ -73,7 +71,7 @@ class UserServiceTest {
         every { userRepository.existsByUsername(username) } returns false
         every { userRepository.existsByEmail(email) } returns true
 
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             userService.createUser(username, email, displayName)
         }
 
@@ -100,7 +98,7 @@ class UserServiceTest {
 
         val foundUser = userService.getUserById(userId)
 
-        assertEquals(user, foundUser)
+        foundUser shouldBe user
         verify { userRepository.findById(userId) }
     }
 
@@ -110,7 +108,7 @@ class UserServiceTest {
 
         every { userRepository.findById(userId) } returns null
 
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             userService.getUserById(userId)
         }
 
@@ -135,7 +133,7 @@ class UserServiceTest {
 
         val foundUser = userService.getUserByUsername(username)
 
-        assertEquals(user, foundUser)
+        foundUser shouldBe user
         verify { userRepository.findByUsername(username) }
     }
 
@@ -157,7 +155,7 @@ class UserServiceTest {
 
         val foundUser = userService.getUserByEmail(email)
 
-        assertEquals(user, foundUser)
+        foundUser shouldBe user
         verify { userRepository.findByEmail(email) }
     }
 
@@ -189,7 +187,7 @@ class UserServiceTest {
 
         val foundUsers = userService.getAllUsers()
 
-        assertEquals(users, foundUsers)
+        foundUsers shouldBe users
         verify { userRepository.findAll() }
     }
 
@@ -213,7 +211,7 @@ class UserServiceTest {
 
         val updatedUser = userService.updateUserDisplayName(userId, newDisplayName)
 
-        assertEquals(newDisplayName, updatedUser.displayName)
+        updatedUser.displayName shouldBe newDisplayName
         verify { userRepository.findById(userId) }
         verify { userRepository.save(any()) }
     }
@@ -239,7 +237,7 @@ class UserServiceTest {
 
         val updatedUser = userService.updateUserEmail(userId, newEmail)
 
-        assertEquals(newEmail, updatedUser.email)
+        updatedUser.email shouldBe newEmail
         verify { userRepository.findById(userId) }
         verify { userRepository.findByEmail(newEmail) }
         verify { userRepository.save(any()) }
@@ -273,7 +271,7 @@ class UserServiceTest {
         every { userRepository.findById(userId) } returns user
         every { userRepository.findByEmail(newEmail) } returns otherUser
 
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             userService.updateUserEmail(userId, newEmail)
         }
 
@@ -301,7 +299,7 @@ class UserServiceTest {
 
         val result = userService.deleteUser(userId)
 
-        assertTrue(result)
+        result shouldBe true
         verify { userRepository.findById(userId) }
         verify { userRepository.deleteById(userId) }
     }
@@ -312,7 +310,7 @@ class UserServiceTest {
 
         every { userRepository.findById(userId) } returns null
 
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             userService.deleteUser(userId)
         }
 
@@ -328,7 +326,7 @@ class UserServiceTest {
 
         val isAvailable = userService.isUsernameAvailable(username)
 
-        assertTrue(isAvailable)
+        isAvailable shouldBe true
         verify { userRepository.existsByUsername(username) }
     }
 
@@ -340,7 +338,7 @@ class UserServiceTest {
 
         val isAvailable = userService.isEmailAvailable(email)
 
-        assertFalse(isAvailable)
+        isAvailable shouldBe false
         verify { userRepository.existsByEmail(email) }
     }
 }

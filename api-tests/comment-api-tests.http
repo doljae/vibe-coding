@@ -1,0 +1,181 @@
+### Comment API Tests
+### This file contains comprehensive tests for the Comment API endpoints
+
+### Variables for testing
+@baseUrl = http://localhost:8080
+@contentType = application/json
+
+### Test Data Setup
+# Note: These are example UUIDs. Replace with actual IDs from your test data
+# You can get actual IDs by first creating test users and posts through your application
+@testUserId = 550e8400-e29b-41d4-a716-446655440000
+@testPostId = 550e8400-e29b-41d4-a716-446655440001
+
+### 1. Create a new comment on a post
+# @name createComment
+POST {{baseUrl}}/api/comments
+Content-Type: {{contentType}}
+
+{
+  "content": "This is a test comment on the post. It contains meaningful content to test the comment functionality.",
+  "authorId": "{{testUserId}}",
+  "postId": "{{testPostId}}"
+}
+
+### 2. Create another comment on the same post
+# @name createSecondComment
+POST {{baseUrl}}/api/comments
+Content-Type: {{contentType}}
+
+{
+  "content": "This is a second comment on the same post. We need multiple comments to test the listing functionality.",
+  "authorId": "{{testUserId}}",
+  "postId": "{{testPostId}}"
+}
+
+### 3. Get all comments for a post (should show the comments we just created)
+GET {{baseUrl}}/api/comments/posts/{{testPostId}}
+
+### 4. Get comment count for a post
+GET {{baseUrl}}/api/comments/posts/{{testPostId}}/count
+
+### 5. Create a reply to the first comment
+# Note: Replace the commentId below with the actual ID returned from step 1
+# @name createReply
+POST {{baseUrl}}/api/comments/replies
+Content-Type: {{contentType}}
+
+{
+  "content": "This is a reply to the first comment. Testing the reply functionality with 1-level depth.",
+  "authorId": "{{testUserId}}",
+  "postId": "{{testPostId}}",
+  "parentCommentId": "REPLACE_WITH_ACTUAL_COMMENT_ID_FROM_STEP_1"
+}
+
+### 6. Get a specific comment by ID
+# Note: Replace the commentId below with an actual ID
+GET {{baseUrl}}/api/comments/REPLACE_WITH_ACTUAL_COMMENT_ID
+
+### 7. Update a comment
+# Note: Replace the commentId below with an actual ID
+PUT {{baseUrl}}/api/comments/REPLACE_WITH_ACTUAL_COMMENT_ID
+Content-Type: {{contentType}}
+
+{
+  "content": "This is the updated content of the comment. Testing the update functionality.",
+  "authorId": "{{testUserId}}"
+}
+
+### 8. Check if a comment exists
+# Note: Replace the commentId below with an actual ID
+GET {{baseUrl}}/api/comments/REPLACE_WITH_ACTUAL_COMMENT_ID/exists
+
+### 9. Delete a reply comment
+# Note: Replace the commentId below with an actual reply ID
+DELETE {{baseUrl}}/api/comments/REPLACE_WITH_ACTUAL_REPLY_ID?authorId={{testUserId}}
+
+### 10. Delete a root comment (should also delete its replies)
+# Note: Replace the commentId below with an actual root comment ID
+DELETE {{baseUrl}}/api/comments/REPLACE_WITH_ACTUAL_COMMENT_ID?authorId={{testUserId}}
+
+### Error Test Cases
+
+### 11. Try to create comment with blank content (should fail with 400)
+POST {{baseUrl}}/api/comments
+Content-Type: {{contentType}}
+
+{
+  "content": "",
+  "authorId": "{{testUserId}}",
+  "postId": "{{testPostId}}"
+}
+
+### 12. Try to create comment with content too long (should fail with 400)
+POST {{baseUrl}}/api/comments
+Content-Type: {{contentType}}
+
+{
+  "content": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem. This content is intentionally very long to exceed the maximum allowed length of 1000 characters for comment content validation testing purposes.",
+  "authorId": "{{testUserId}}",
+  "postId": "{{testPostId}}"
+}
+
+### 13. Try to create comment with invalid author ID format (should fail with 400)
+POST {{baseUrl}}/api/comments
+Content-Type: {{contentType}}
+
+{
+  "content": "This comment has an invalid author ID",
+  "authorId": "invalid-uuid-format",
+  "postId": "{{testPostId}}"
+}
+
+### 14. Try to create comment with invalid post ID format (should fail with 400)
+POST {{baseUrl}}/api/comments
+Content-Type: {{contentType}}
+
+{
+  "content": "This comment has an invalid post ID",
+  "authorId": "{{testUserId}}",
+  "postId": "invalid-uuid-format"
+}
+
+### 15. Try to create reply with non-existent parent comment ID (should fail with 404)
+POST {{baseUrl}}/api/comments/replies
+Content-Type: {{contentType}}
+
+{
+  "content": "This reply references a non-existent parent comment",
+  "authorId": "{{testUserId}}",
+  "postId": "{{testPostId}}",
+  "parentCommentId": "550e8400-e29b-41d4-a716-999999999999"
+}
+
+### 16. Try to get non-existent comment (should fail with 404)
+GET {{baseUrl}}/api/comments/550e8400-e29b-41d4-a716-999999999999
+
+### 17. Try to get comments for non-existent post (should fail with 404)
+GET {{baseUrl}}/api/comments/posts/550e8400-e29b-41d4-a716-999999999999
+
+### Advanced Test Cases
+
+### 18. Test comment content at maximum length (1000 characters - should succeed)
+POST {{baseUrl}}/api/comments
+Content-Type: {{contentType}}
+
+{
+  "content": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur.",
+  "authorId": "{{testUserId}}",
+  "postId": "{{testPostId}}"
+}
+
+### 19. Test comment with special characters and Unicode (should succeed)
+POST {{baseUrl}}/api/comments
+Content-Type: {{contentType}}
+
+{
+  "content": "댓글 테스트입니다! 🎉 Special characters: @#$%^&*()_+-=[]{}|;':\",./<>? Unicode: 한글, 中文, 日本語, العربية, русский",
+  "authorId": "{{testUserId}}",
+  "postId": "{{testPostId}}"
+}
+
+### 20. Verify final state - get all comments for the post
+GET {{baseUrl}}/api/comments/posts/{{testPostId}}
+
+### 21. Verify final comment count
+GET {{baseUrl}}/api/comments/posts/{{testPostId}}/count
+
+### Instructions for running these tests:
+### 1. Start your Spring Boot application (./gradlew bootRun)
+### 2. Make sure you have test data (users, posts) in your application
+### 3. Update the @testUserId and @testPostId variables with actual IDs from your test data
+### 4. Run the tests in order, replacing placeholder IDs with actual IDs returned from the create operations
+### 5. Some tests are expected to fail (error cases) - verify they return appropriate error responses
+### 6. The final tests (20-21) should show the current state of comments for the test post
+
+### Tips:
+### - Use IntelliJ IDEA's HTTP Client to run these tests
+### - Copy the IDs from successful responses and paste them into subsequent requests
+### - Check the response status codes and bodies to verify expected behavior
+### - For error cases, expect 400 (Bad Request) or 404 (Not Found) status codes
+
