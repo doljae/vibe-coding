@@ -366,7 +366,8 @@ class CommentsManager {
 
         try {
             const updateData = {
-                content: newContent.trim()
+                content: newContent.trim(),
+                authorId: comment.authorId
             };
 
             await api.comments.update(commentId, updateData);
