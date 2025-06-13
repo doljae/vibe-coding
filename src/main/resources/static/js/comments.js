@@ -179,7 +179,7 @@ class CommentsManager {
         // In a real application, this would check user permissions
         // For demo purposes, allow editing if author name matches stored name
         const storedAuthorName = storage.get('authorName');
-        return storedAuthorName && comment.author.name === storedAuthorName;
+        return storedAuthorName && comment.authorName === storedAuthorName;
     }
 
     updateCommentsCount(count) {
