@@ -56,7 +56,8 @@
                     <form id="comment-form" class="comment-form">
                         <div class="form-group">
                             <label for="comment-author" class="form-label">작성자</label>
-                            <input type="text" id="comment-author" class="form-input" required placeholder="이름을 입력하세요">
+                            <input type="text" id="comment-author" class="form-input" required placeholder="예: 홍길동, 김개발자">
+                            <div class="form-help">댓글에 표시될 이름을 입력하세요.</div>
                         </div>
                         <div class="form-group">
                             <label for="comment-content" class="form-label">댓글 내용</label>
@@ -102,7 +103,8 @@
                     <input type="hidden" id="reply-parent-id">
                     <div class="form-group">
                         <label for="reply-author" class="form-label">작성자</label>
-                        <input type="text" id="reply-author" class="form-input" required placeholder="이름을 입력하세요">
+                        <input type="text" id="reply-author" class="form-input" required placeholder="예: 홍길동, 김개발자">
+                        <div class="form-help">답글에 표시될 이름을 입력하세요.</div>
                     </div>
                     <div class="form-group">
                         <label for="reply-content" class="form-label">답글 내용</label>
@@ -141,4 +143,3 @@
     <script src="/js/likes.js"></script>
 </body>
 </html>
-

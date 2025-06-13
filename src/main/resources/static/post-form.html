@@ -54,7 +54,11 @@
                         <div class="form-group">
                             <label for="author-name" class="form-label">작성자 이름 *</label>
                             <input type="text" id="author-name" name="authorName" class="form-input" required 
-                                   placeholder="이름을 입력하세요">
+                                   placeholder="예: 홍길동, 김개발자, john_doe">
+                            <div class="form-help">
+                                <i class="fas fa-info-circle"></i>
+                                게시글에 표시될 작성자 이름을 입력하세요. 한글, 영문, 숫자, 언더스코어(_)를 사용할 수 있습니다.
+                            </div>
                         </div>
                     </div>
 
@@ -115,7 +119,7 @@
                         </button>
                         <button type="button" id="save-draft-btn" class="btn btn-secondary">
                             <i class="fas fa-save"></i>
-                            임시저장
+                            임시저��
                         </button>
                         <button type="submit" id="submit-btn" class="btn btn-primary">
                             <i class="fas fa-paper-plane"></i>
@@ -147,4 +151,3 @@
     <script src="/js/post-form.js"></script>
 </body>
 </html>
-

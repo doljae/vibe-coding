@@ -240,8 +240,8 @@ class PostControllerTest {
             "test image content".toByteArray()
         )
         
+        every { userService.getUserByUsername("testuser") } returns testUser
         every { postService.createPostWithImages("Test Post", "Test content", testUserId, testCategoryId, any()) } returns testPost
-        every { userService.getUserById(testUserId) } returns testUser
         every { categoryService.getCategoryById(testCategoryId) } returns testCategory
 
         // When & Then
@@ -250,7 +250,7 @@ class PostControllerTest {
                 .file(imageFile)
                 .param("title", "Test Post")
                 .param("content", "Test content")
-                .param("authorId", testUserId.value.toString())
+                .param("authorName", "testuser")
                 .param("categoryId", testCategoryId.value.toString())
         )
             .andExpect(status().isCreated)
@@ -260,8 +260,8 @@ class PostControllerTest {
             .andExpect(jsonPath("$.imageAttachments").isArray)
             .andExpect(jsonPath("$.imageAttachments[0].filename").value("test.jpg"))
 
+        verify { userService.getUserByUsername("testuser") }
         verify { postService.createPostWithImages("Test Post", "Test content", testUserId, testCategoryId, any()) }
-        verify { userService.getUserById(testUserId) }
         verify { categoryService.getCategoryById(testCategoryId) }
     }
 

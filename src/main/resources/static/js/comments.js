@@ -241,7 +241,7 @@ class CommentsManager {
             
             const commentData = {
                 content: content,
-                authorId: this.currentUserId,
+                authorName: author,
                 postId: this.postId
             };
 
@@ -284,7 +284,7 @@ class CommentsManager {
             
             const replyData = {
                 content: content,
-                authorId: this.currentUserId,
+                authorName: author,
                 postId: this.postId,
                 parentCommentId: parentId
             };
@@ -354,8 +354,7 @@ class CommentsManager {
 
         try {
             const updateData = {
-                content: newContent.trim(),
-                authorId: this.currentUserId
+                content: newContent.trim()
             };
 
             await api.comments.update(commentId, updateData);
@@ -377,7 +376,7 @@ class CommentsManager {
         }
 
         try {
-            await api.comments.delete(commentId, this.currentUserId);
+            await api.comments.delete(commentId);
             
             // Reload comments
             await this.loadComments();
@@ -637,4 +636,3 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
-

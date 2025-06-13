@@ -240,7 +240,7 @@ class PostFormPage {
             }
             
             if (file.size > this.maxFileSize) {
-                this.showNotification(`${file.name}은(는) 파일 크기가 너무 큽니다. (최대 5MB)`, 'error');
+                this.showNotification(`${file.name}은(는) 파��� 크기가 너무 큽니다. (최대 5MB)`, 'error');
                 return false;
             }
             
@@ -387,9 +387,8 @@ class PostFormPage {
         
         formData.append('title', document.getElementById('post-title').value.trim());
         formData.append('content', document.getElementById('post-content').value.trim());
-        formData.append('authorId', this.currentUserId);
-        formData.append('categoryId', document.getElementById('post-category').value);
         formData.append('authorName', document.getElementById('author-name').value.trim());
+        formData.append('categoryId', document.getElementById('post-category').value);
         
         // Add images
         this.selectedFiles.forEach(file => {
@@ -400,17 +399,8 @@ class PostFormPage {
     }
 
     async createPost(formData) {
-        if (this.selectedFiles.length > 0) {
-            return await api.posts.createWithImages(formData);
-        } else {
-            const postData = {
-                title: formData.get('title'),
-                content: formData.get('content'),
-                authorId: formData.get('authorId'),
-                categoryId: formData.get('categoryId')
-            };
-            return await api.posts.create(postData);
-        }
+        // Always use the multipart endpoint for consistency
+        return await api.posts.createWithImages(formData);
     }
 
     async updatePost(formData) {
@@ -812,4 +802,3 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize post form page
     postFormPage = new PostFormPage();
 });
-
