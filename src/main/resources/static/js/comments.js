@@ -86,7 +86,7 @@ class CommentsManager {
                     <div class="comment-header">
                         <div class="comment-author">
                             <i class="fas fa-user-circle"></i>
-                            <span class="author-name">${comment.author.name}</span>
+                            <span class="author-name">${comment.authorName}</span>
                         </div>
                         <div class="comment-date">
                             ${utils.formatRelativeTime(comment.createdAt)}
@@ -129,7 +129,7 @@ class CommentsManager {
                     <div class="comment-header">
                         <div class="comment-author">
                             <i class="fas fa-user-circle"></i>
-                            <span class="author-name">${reply.author.name}</span>
+                            <span class="author-name">${reply.authorName}</span>
                             <span class="reply-indicator">
                                 <i class="fas fa-reply"></i>
                                 답글

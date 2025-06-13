@@ -219,14 +219,14 @@ const api = {
 
     // Likes API
     likes: {
-        toggle(postId, userId) {
-            return api.call(`/likes/posts/${postId}/users/${userId}/toggle`, {
+        toggle(postId, authorName) {
+            return api.call(`/likes/posts/${postId}/users/${encodeURIComponent(authorName)}/toggle`, {
                 method: 'PUT'
             });
         },
 
-        getStatus(postId, userId) {
-            return api.call(`/likes/posts/${postId}/users/${userId}/status`);
+        getStatus(postId, authorName) {
+            return api.call(`/likes/posts/${postId}/users/${encodeURIComponent(authorName)}/status`);
         },
 
         getCount(postId) {
@@ -374,4 +374,3 @@ window.addEventListener('unhandledrejection', function(event) {
 window.utils = utils;
 window.api = api;
 window.storage = storage;
-

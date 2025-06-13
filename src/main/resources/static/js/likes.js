@@ -1,7 +1,7 @@
 // Likes functionality
 class LikesManager {
     constructor() {
-        this.currentUserId = this.getCurrentUserId();
+        this.currentAuthorName = this.getCurrentAuthorName();
         this.init();
     }
 
@@ -10,14 +10,15 @@ class LikesManager {
         this.loadLikeStatus();
     }
 
-    getCurrentUserId() {
-        // In a real application, this would come from authentication
-        let userId = storage.get('currentUserId');
-        if (!userId) {
-            userId = 'user-' + Math.random().toString(36).substr(2, 9);
-            storage.set('currentUserId', userId);
+    getCurrentAuthorName() {
+        // Use authorName from storage, consistent with comments system
+        let authorName = storage.get('authorName');
+        if (!authorName) {
+            // Fallback to temporary user ID if no author name is set
+            authorName = 'user-' + Math.random().toString(36).substr(2, 9);
+            storage.set('authorName', authorName);
         }
-        return userId;
+        return authorName;
     }
 
     setupEventListeners() {
@@ -42,7 +43,7 @@ class LikesManager {
 
         try {
             // Get current like status
-            const statusResponse = await api.likes.getStatus(postId, this.currentUserId);
+            const statusResponse = await api.likes.getStatus(postId, this.currentAuthorName);
             const isLiked = statusResponse.hasLiked;
 
             // Get current like count
@@ -66,7 +67,7 @@ class LikesManager {
         likeBtn.classList.add('loading');
 
         try {
-            const response = await api.likes.toggle(postId, this.currentUserId);
+            const response = await api.likes.toggle(postId, this.currentAuthorName);
             const isLiked = response.isLiked;
 
             // Get updated like count
@@ -364,4 +365,3 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize likes manager
     likesManager = new LikesManager();
 });
-
