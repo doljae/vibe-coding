@@ -108,7 +108,7 @@ class PostsPage {
                 <div class="post-card-meta">
                     <div class="post-author">
                         <i class="fas fa-user"></i>
-                        <span>${post.author.name}</span>
+                        <span>${post.author.displayName}</span>
                     </div>
                     <div class="post-date">
                         <i class="fas fa-clock"></i>
@@ -668,4 +668,3 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize posts page
     new PostsPage();
 });
-

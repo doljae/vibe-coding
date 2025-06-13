@@ -69,7 +69,7 @@ class PostDetailPage {
                     <div class="post-meta">
                         <div class="post-author">
                             <i class="fas fa-user"></i>
-                            <span>${this.post.author.name}</span>
+                            <span>${this.post.author.displayName}</span>
                         </div>
                         <div class="post-date">
                             <i class="fas fa-clock"></i>
@@ -584,4 +584,3 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize post detail page
     postDetailPage = new PostDetailPage();
 });
-

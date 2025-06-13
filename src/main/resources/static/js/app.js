@@ -303,7 +303,7 @@ async function loadRecentPosts() {
     if (!container) return;
 
     try {
-        utils.showLoading(container, '최근 게시글을 불러오는 중...');
+        utils.showLoading(container, '최근 게시글을 불러��는 중...');
         
         const posts = await api.posts.getAll();
         
@@ -319,7 +319,7 @@ async function loadRecentPosts() {
                         </a>
                     </div>
                     <div class="post-preview-meta">
-                        <span><i class="fas fa-user"></i> ${post.author.name}</span>
+                        <span><i class="fas fa-user"></i> ${post.author.displayName}</span>
                         <span><i class="fas fa-folder"></i> ${post.category.name}</span>
                         <span><i class="fas fa-clock"></i> ${utils.formatRelativeTime(post.createdAt)}</span>
                     </div>
