@@ -83,7 +83,7 @@ class PostFormPage {
             document.getElementById('post-title').value = post.title;
             document.getElementById('post-content').value = post.content;
             document.getElementById('post-category').value = post.category.id;
-            document.getElementById('author-name').value = post.author.name;
+            document.getElementById('author-name').value = post.author.displayName;
             
             this.hideLoadingModal();
             
@@ -240,7 +240,7 @@ class PostFormPage {
             }
             
             if (file.size > this.maxFileSize) {
-                this.showNotification(`${file.name}은(는) 파��� 크기가 너무 큽니다. (최대 5MB)`, 'error');
+                this.showNotification(`${file.name}은(는) 파���� 크기가 너무 큽니다. (최대 5MB)`, 'error');
                 return false;
             }
             
@@ -414,7 +414,7 @@ class PostFormPage {
 
     handleCancel() {
         if (this.hasUnsavedChanges()) {
-            if (!confirm('작성 중인 내용이 있습니다. 정말로 취소하시겠습니까?')) {
+            if (!confirm('작성 중인 내용이 ��습니다. 정말로 취소하시겠습니까?')) {
                 return;
             }
         }
