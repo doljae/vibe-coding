@@ -1,6 +1,7 @@
 package com.example.vibecoding.presentation.dto
 
 import com.example.vibecoding.application.comment.CommentWithReplies
+import com.example.vibecoding.application.user.UserService
 import com.example.vibecoding.domain.comment.Comment
 import com.example.vibecoding.domain.comment.CommentId
 import com.example.vibecoding.domain.post.PostId
@@ -17,13 +18,12 @@ data class CreateCommentRequest(
     @field:Size(min = 1, max = 1000, message = "Comment content must be between 1 and 1000 characters")
     val content: String,
     
-    @field:NotBlank(message = "Author ID cannot be blank")
-    val authorId: String,
+    @field:NotBlank(message = "Author name cannot be blank")
+    val authorName: String,
     
     @field:NotBlank(message = "Post ID cannot be blank")
     val postId: String
 ) {
-    fun toUserId(): UserId = UserId.from(authorId)
     fun toPostId(): PostId = PostId.from(postId)
 }
 
@@ -35,8 +35,8 @@ data class CreateReplyRequest(
     @field:Size(min = 1, max = 1000, message = "Reply content must be between 1 and 1000 characters")
     val content: String,
     
-    @field:NotBlank(message = "Author ID cannot be blank")
-    val authorId: String,
+    @field:NotBlank(message = "Author name cannot be blank")
+    val authorName: String,
     
     @field:NotBlank(message = "Post ID cannot be blank")
     val postId: String,
@@ -44,7 +44,6 @@ data class CreateReplyRequest(
     @field:NotBlank(message = "Parent comment ID cannot be blank")
     val parentCommentId: String
 ) {
-    fun toUserId(): UserId = UserId.from(authorId)
     fun toPostId(): PostId = PostId.from(postId)
     fun toParentCommentId(): CommentId = CommentId.from(parentCommentId)
 }
@@ -70,6 +69,7 @@ data class CommentResponse(
     val id: String,
     val content: String,
     val authorId: String,
+    val authorName: String,
     val postId: String,
     val parentCommentId: String?,
     val isReply: Boolean,
@@ -77,11 +77,18 @@ data class CommentResponse(
     val updatedAt: LocalDateTime
 ) {
     companion object {
-        fun from(comment: Comment): CommentResponse {
+        fun from(comment: Comment, userService: UserService? = null): CommentResponse {
+            val authorName = try {
+                userService?.getUserById(comment.authorId)?.displayName ?: "Unknown"
+            } catch (e: Exception) {
+                "Unknown"
+            }
+            
             return CommentResponse(
                 id = comment.id.value.toString(),
                 content = comment.content,
                 authorId = comment.authorId.value.toString(),
+                authorName = authorName,
                 postId = comment.postId.value.toString(),
                 parentCommentId = comment.parentCommentId?.value?.toString(),
                 isReply = comment.isReply(),
@@ -101,10 +108,10 @@ data class CommentWithRepliesResponse(
     val replyCount: Int
 ) {
     companion object {
-        fun from(commentWithReplies: CommentWithReplies): CommentWithRepliesResponse {
+        fun from(commentWithReplies: CommentWithReplies, userService: UserService? = null): CommentWithRepliesResponse {
             return CommentWithRepliesResponse(
-                comment = CommentResponse.from(commentWithReplies.comment),
-                replies = commentWithReplies.replies.map { CommentResponse.from(it) },
+                comment = CommentResponse.from(commentWithReplies.comment, userService),
+                replies = commentWithReplies.replies.map { CommentResponse.from(it, userService) },
                 replyCount = commentWithReplies.replies.size
             )
         }
@@ -123,14 +130,14 @@ data class PostCommentsResponse(
         fun from(
             postId: PostId,
             commentsWithReplies: List<CommentWithReplies>,
-            totalCount: Long
+            totalCount: Long,
+            userService: UserService? = null
         ): PostCommentsResponse {
             return PostCommentsResponse(
                 postId = postId.value.toString(),
-                comments = commentsWithReplies.map { CommentWithRepliesResponse.from(it) },
+                comments = commentsWithReplies.map { CommentWithRepliesResponse.from(it, userService) },
                 totalCommentCount = totalCount
             )
         }
     }
 }
-
