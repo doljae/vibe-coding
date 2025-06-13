@@ -40,10 +40,22 @@ class CommentsManager {
             utils.showLoading(container, '댓글을 불러오는 중...');
             
             const response = await api.comments.getForPost(this.postId);
-            this.comments = response.comments || [];
+            
+            // Convert nested structure to flat array
+            this.comments = [];
+            if (response.comments) {
+                response.comments.forEach(commentWithReplies => {
+                    // Add main comment
+                    this.comments.push(commentWithReplies.comment);
+                    // Add replies
+                    if (commentWithReplies.replies) {
+                        this.comments.push(...commentWithReplies.replies);
+                    }
+                });
+            }
             
             this.renderComments();
-            this.updateCommentsCount(response.totalCount || 0);
+            this.updateCommentsCount(response.totalCommentCount || 0);
             
         } catch (error) {
             console.error('Failed to load comments:', error);

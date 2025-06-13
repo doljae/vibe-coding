@@ -62,6 +62,18 @@ class LikesManager {
         const likeBtn = document.querySelector(`[data-post-id="${postId}"]`);
         if (!likeBtn) return;
 
+        // Check if user name is set, prompt if not
+        let authorName = storage.get('authorName');
+        if (!authorName || authorName.startsWith('user-')) {
+            authorName = prompt('좋아요를 누르려면 이름을 입력해주세요:');
+            if (!authorName || authorName.trim() === '') {
+                return; // User cancelled or entered empty name
+            }
+            authorName = authorName.trim();
+            storage.set('authorName', authorName);
+            this.currentAuthorName = authorName;
+        }
+
         // Disable button during request
         likeBtn.disabled = true;
         likeBtn.classList.add('loading');
