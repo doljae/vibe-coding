@@ -179,6 +179,12 @@ class CommentsManager {
         // In a real application, this would check user permissions
         // For demo purposes, allow editing if author name matches stored name
         const storedAuthorName = storage.get('authorName');
+        console.log('Debug - canEditComment:', {
+            storedAuthorName,
+            commentAuthorName: comment.authorName,
+            commentId: comment.id,
+            canEdit: storedAuthorName && comment.authorName === storedAuthorName
+        });
         return storedAuthorName && comment.authorName === storedAuthorName;
     }
 
@@ -388,8 +394,14 @@ class CommentsManager {
             return;
         }
 
+        const comment = this.comments.find(c => c.id === commentId);
+        if (!comment) {
+            this.showNotification('댓글을 찾을 수 없습니다.', 'error');
+            return;
+        }
+
         try {
-            await api.comments.delete(commentId);
+            await api.comments.delete(commentId, comment.authorId);
             
             // Reload comments
             await this.loadComments();
