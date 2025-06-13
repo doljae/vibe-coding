@@ -49,16 +49,16 @@ Run all tests:
 
 ```
 src/
-├── main/
-│   ├── kotlin/
-│   │   └── com/example/vibecoding/
-│   │       └── VibeCodingApplication.kt
-│   └── resources/
-│       └── application.properties
-└── test/
-    └── kotlin/
-        └── com/example/vibecoding/
-            └── VibeCodingApplicationTests.kt
+ main/
+    kotlin/
+       com/example/vibecoding/
+           VibeCodingApplication.kt
+    resources/
+        application.properties
+ test/
+     kotlin/
+         com/example/vibecoding/
+             VibeCodingApplicationTests.kt
 ```
 
 ## 🔧 Development
@@ -85,4 +85,3 @@ Example commit messages:
 ## 📄 License
 
 This project is licensed under the MIT License.
-
