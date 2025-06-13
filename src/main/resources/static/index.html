@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibe Coding - 게시판</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <h1 class="logo">
+                    <a href="/">
+                        <i class="fas fa-code"></i>
+                        Vibe Coding
+                    </a>
+                </h1>
+                <nav class="nav">
+                    <a href="/" class="nav-link active">홈</a>
+                    <a href="/posts.html" class="nav-link">게시글</a>
+                    <a href="/post-form.html" class="nav-link">글쓰기</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <section class="hero">
+                <h2 class="hero-title">Vibe Coding 게시판에 오신 것을 환영합니다</h2>
+                <p class="hero-description">
+                    개발자들이 모여 지식을 공유하고 소통하는 공간입니다.<br>
+                    자유롭게 글을 작성하고 댓글로 의견을 나누어보세요.
+                </p>
+                <div class="hero-actions">
+                    <a href="/posts.html" class="btn btn-primary">
+                        <i class="fas fa-list"></i>
+                        게시글 보기
+                    </a>
+                    <a href="/post-form.html" class="btn btn-secondary">
+                        <i class="fas fa-pen"></i>
+                        글쓰기
+                    </a>
+                </div>
+            </section>
+
+            <section class="features">
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-images"></i>
+                        </div>
+                        <h3>이미지 첨부</h3>
+                        <p>최대 3개의 이미지를 첨부하여 더 풍부한 내용을 공유하세요.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <h3>댓글 시스템</h3>
+                        <p>게시글에 댓글을 달고 답글로 깊이 있는 토론을 나누세요.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                        <h3>좋아요</h3>
+                        <p>마음에 드는 게시글에 좋아요를 눌러 공감을 표현하세요.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <h3>검색 기능</h3>
+                        <p>제목, 작성자, 카테고리별로 원하는 게시글을 쉽게 찾아보세요.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="recent-posts">
+                <h3 class="section-title">최근 게시글</h3>
+                <div id="recent-posts-container" class="posts-preview">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        게시글을 불러오는 중...
+                    </div>
+                </div>
+                <div class="section-actions">
+                    <a href="/posts.html" class="btn btn-outline">
+                        모든 게시글 보기
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 Vibe Coding. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>
+
