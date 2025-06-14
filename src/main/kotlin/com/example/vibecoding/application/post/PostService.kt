@@ -201,9 +201,13 @@ class PostService(
         return postRepository.findByTitle(title)
     }
 
-    fun deletePost(id: PostId) {
-        if (!postRepository.existsById(id)) {
-            throw PostNotFoundException("Post with id '$id' not found")
+    fun deletePost(id: PostId, authorId: UserId) {
+        val post = postRepository.findById(id)
+            ?: throw PostNotFoundException("Post with id '$id' not found")
+        
+        // Validate that the user is the author of the post
+        if (post.authorId != authorId) {
+            throw UnauthorizedPostModificationException("User is not authorized to delete this post")
         }
 
         postRepository.delete(id)
@@ -262,3 +266,4 @@ class PostNotFoundException(message: String) : RuntimeException(message)
 class CategoryNotFoundException(message: String) : RuntimeException(message)
 class UserNotFoundException(message: String) : RuntimeException(message)
 class ImageAttachmentException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
+class UnauthorizedPostModificationException(message: String) : RuntimeException(message)

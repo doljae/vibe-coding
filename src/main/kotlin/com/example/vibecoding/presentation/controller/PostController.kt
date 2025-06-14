@@ -86,23 +86,34 @@ class PostController(
     @PostMapping
     fun createPost(@Valid @RequestBody request: CreatePostRequest): ResponseEntity<PostResponse> {
         return try {
-            logger.info("Creating post - title: ${request.title}, authorId: ${request.authorId}")
+            logger.info("Creating post - title: ${request.title}, authorName: ${request.authorName}")
+            
+            // Find or create user
+            val user = try {
+                userService.getUserByUsername(request.authorName)
+            } catch (e: Exception) {
+                logger.info("User not found, creating new user: ${request.authorName}")
+                userService.createUser(request.authorName, "${request.authorName}@example.com", request.authorName)
+            }
+            
+            // Find or create category
+            val category = categoryService.getCategoryByName(request.category) ?: run {
+                logger.info("Category not found, creating new category: ${request.category}")
+                categoryService.createCategory(request.category, "Auto-created category")
+            }
             
             val post = postService.createPost(
                 title = request.title,
                 content = request.content,
-                authorId = UserId.from(request.authorId),
-                categoryId = CategoryId.from(request.categoryId)
+                authorId = user.id,
+                categoryId = category.id
             )
-            
-            val author = userService.getUserById(post.authorId)
-            val category = categoryService.getCategoryById(post.categoryId)
             
             val response = PostResponse(
                 id = post.id.value.toString(),
                 title = post.title,
                 content = post.content,
-                author = UserSummaryResponse.from(author),
+                author = UserSummaryResponse.from(user),
                 category = CategorySummaryResponse.from(category),
                 imageAttachments = post.imageAttachments.map { 
                     ImageAttachmentResponse.from(it, post.id.value.toString()) 
@@ -243,9 +254,13 @@ class PostController(
      * Delete a post
      */
     @DeleteMapping("/{id}")
-    fun deletePost(@PathVariable id: String): ResponseEntity<Void> {
+    fun deletePost(
+        @PathVariable id: String,
+        @RequestParam authorId: String
+    ): ResponseEntity<Void> {
         val postId = PostId.from(id)
-        postService.deletePost(postId)
+        val userId = UserId.from(authorId)
+        postService.deletePost(postId, userId)
         return ResponseEntity.noContent().build()
     }
 

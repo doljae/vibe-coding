@@ -230,7 +230,7 @@ class PostDetailPage {
         }
 
         try {
-            await api.posts.delete(this.postId);
+            await api.posts.delete(this.postId, this.currentUserId);
             this.showNotification('게시글이 삭제되었습니다.');
             
             // Redirect to posts list after a short delay
