@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게시글 상세 - Vibe Coding</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <h1 class="logo">
+                    <a href="/">
+                        <i class="fas fa-code"></i>
+                        Vibe Coding
+                    </a>
+                </h1>
+                <nav class="nav">
+                    <a href="/" class="nav-link">홈</a>
+                    <a href="/posts.html" class="nav-link">게시글</a>
+                    <a href="/post-form.html" class="nav-link">글쓰기</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <!-- Back Navigation -->
+            <div class="back-navigation">
+                <a href="/posts.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i>
+                    게시글 목록으로 돌아가기
+                </a>
+            </div>
+
+            <!-- Post Content -->
+            <div id="post-container" class="post-detail-container">
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    게시글을 불러오는 중...
+                </div>
+            </div>
+
+            <!-- Comments Section -->
+            <div id="comments-section" class="comments-section" style="display: none;">
+                <h3 class="comments-title">
+                    <i class="fas fa-comments"></i>
+                    댓글 <span id="comments-count">0</span>개
+                </h3>
+
+                <!-- Comment Form -->
+                <div class="comment-form-container">
+                    <form id="comment-form" class="comment-form">
+                        <div class="form-group">
+                            <label for="comment-author" class="form-label">작성자</label>
+                            <input type="text" id="comment-author" class="form-input" required placeholder="예: 홍길동, 김개발자">
+                            <div class="form-help">댓글에 표시될 이름을 입력하세요.</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="comment-content" class="form-label">댓글 내용</label>
+                            <textarea id="comment-content" class="form-textarea" required placeholder="댓글을 입력하세요" rows="3"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i>
+                                댓글 작성
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Comments List -->
+                <div id="comments-list" class="comments-list">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        댓글을 불러오는 중...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 Vibe Coding. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Reply Modal -->
+    <div id="reply-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>답글 작성</h3>
+                <button id="close-reply-modal" class="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="reply-form" class="reply-form">
+                    <input type="hidden" id="reply-parent-id">
+                    <div class="form-group">
+                        <label for="reply-author" class="form-label">작성자</label>
+                        <input type="text" id="reply-author" class="form-input" required placeholder="예: 홍길동, 김개발자">
+                        <div class="form-help">답글에 표시될 이름을 입력하세요.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="reply-content" class="form-label">답글 내용</label>
+                        <textarea id="reply-content" class="form-textarea" required placeholder="답글을 입력하세요" rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="cancel-reply" class="btn btn-outline">취소</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i>
+                            답글 작성
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div id="image-modal" class="modal" style="display: none;">
+        <div class="modal-content modal-image">
+            <div class="modal-header">
+                <h3 id="image-modal-title">이미지 보기</h3>
+                <button id="close-image-modal" class="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <img id="modal-image" src="" alt="" class="modal-image-content">
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script src="/js/post-detail.js"></script>
+    <script src="/js/comments.js"></script>
+    <script src="/js/likes.js"></script>
+</body>
+</html>

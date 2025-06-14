@@ -2,6 +2,7 @@ package com.example.vibecoding.presentation.controller
 
 import com.example.vibecoding.application.comment.CommentService
 import com.example.vibecoding.application.comment.CommentWithReplies
+import com.example.vibecoding.application.user.UserService
 import com.example.vibecoding.domain.comment.Comment
 import com.example.vibecoding.domain.comment.CommentId
 import com.example.vibecoding.domain.post.PostId
@@ -28,6 +29,9 @@ class CommentControllerTest {
 
     @MockBean
     private lateinit var commentService: CommentService
+
+    @MockBean
+    private lateinit var userService: UserService
 
     private val userId = UserId.generate()
     private val postId = PostId.generate()
@@ -119,4 +123,3 @@ class CommentControllerTest {
         verify(commentService).getCommentCountForPost(postId)
     }
 }
-
