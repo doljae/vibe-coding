@@ -10,6 +10,7 @@ import com.example.vibecoding.domain.post.PostId
 import com.example.vibecoding.domain.user.UserId
 import com.example.vibecoding.presentation.dto.*
 import jakarta.validation.Valid
+import org.slf4j.LoggerFactory
 import org.springframework.core.io.InputStreamResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -28,6 +29,7 @@ class PostController(
     private val userService: UserService,
     private val categoryService: CategoryService
 ) {
+    private val logger = LoggerFactory.getLogger(PostController::class.java)
 
     /**
      * Get all posts
@@ -83,31 +85,40 @@ class PostController(
      */
     @PostMapping
     fun createPost(@Valid @RequestBody request: CreatePostRequest): ResponseEntity<PostResponse> {
-        val post = postService.createPost(
-            title = request.title,
-            content = request.content,
-            authorId = UserId.from(request.authorId),
-            categoryId = CategoryId.from(request.categoryId)
-        )
-        
-        val author = userService.getUserById(post.authorId)
-        val category = categoryService.getCategoryById(post.categoryId)
-        
-        val response = PostResponse(
-            id = post.id.value.toString(),
-            title = post.title,
-            content = post.content,
-            author = UserSummaryResponse.from(author),
-            category = CategorySummaryResponse.from(category),
-            imageAttachments = post.imageAttachments.map { 
-                ImageAttachmentResponse.from(it, post.id.value.toString()) 
-            },
-            likeCount = post.likeCount,
-            createdAt = post.createdAt,
-            updatedAt = post.updatedAt
-        )
-        
-        return ResponseEntity.status(HttpStatus.CREATED).body(response)
+        return try {
+            logger.info("Creating post - title: ${request.title}, authorId: ${request.authorId}")
+            
+            val post = postService.createPost(
+                title = request.title,
+                content = request.content,
+                authorId = UserId.from(request.authorId),
+                categoryId = CategoryId.from(request.categoryId)
+            )
+            
+            val author = userService.getUserById(post.authorId)
+            val category = categoryService.getCategoryById(post.categoryId)
+            
+            val response = PostResponse(
+                id = post.id.value.toString(),
+                title = post.title,
+                content = post.content,
+                author = UserSummaryResponse.from(author),
+                category = CategorySummaryResponse.from(category),
+                imageAttachments = post.imageAttachments.map { 
+                    ImageAttachmentResponse.from(it, post.id.value.toString()) 
+                },
+                likeCount = post.likeCount,
+                createdAt = post.createdAt,
+                updatedAt = post.updatedAt
+            )
+            
+            logger.info("Successfully created post with ID: ${post.id.value}")
+            ResponseEntity.status(HttpStatus.CREATED).body(response)
+            
+        } catch (e: Exception) {
+            logger.error("Failed to create post", e)
+            throw e
+        }
     }
 
     /**
@@ -117,56 +128,78 @@ class PostController(
     fun createPostWithImages(
         @RequestParam title: String,
         @RequestParam content: String,
-        @RequestParam authorId: String,
+        @RequestParam authorName: String,
         @RequestParam categoryId: String,
         @RequestParam(required = false) images: List<MultipartFile>?
     ): ResponseEntity<PostResponse> {
-        val authorIdValue = UserId.from(authorId)
-        val categoryIdValue = CategoryId.from(categoryId)
-        
-        val imageRequests = images?.map { file ->
-            ImageUploadRequest(
-                filename = file.originalFilename ?: "unknown",
-                contentType = file.contentType ?: "application/octet-stream",
-                fileSizeBytes = file.size,
-                inputStream = file.inputStream
+        return try {
+            logger.info("Creating post with images - title: $title, authorName: $authorName, categoryId: $categoryId")
+            
+            // Find or create user by name
+            val author = try {
+                userService.getUserByUsername(authorName)
+            } catch (e: Exception) {
+                logger.info("User not found, creating new user: $authorName")
+                userService.createUser(
+                    username = authorName,
+                    email = "${authorName.lowercase().replace(" ", "")}@example.com",
+                    displayName = authorName,
+                    bio = null
+                )
+            }
+            
+            val categoryIdValue = CategoryId.from(categoryId)
+            
+            val imageRequests = images?.map { file ->
+                logger.info("Processing image: ${file.originalFilename}, size: ${file.size}")
+                ImageUploadRequest(
+                    filename = file.originalFilename ?: "unknown",
+                    contentType = file.contentType ?: "application/octet-stream",
+                    fileSizeBytes = file.size,
+                    inputStream = file.inputStream
+                )
+            } ?: emptyList()
+            
+            val post = if (imageRequests.isNotEmpty()) {
+                postService.createPostWithImages(
+                    title = title,
+                    content = content,
+                    authorId = author.id,
+                    categoryId = categoryIdValue,
+                    images = imageRequests
+                )
+            } else {
+                postService.createPost(
+                    title = title,
+                    content = content,
+                    authorId = author.id,
+                    categoryId = categoryIdValue
+                )
+            }
+            
+            val category = categoryService.getCategoryById(post.categoryId)
+            
+            val response = PostResponse(
+                id = post.id.value.toString(),
+                title = post.title,
+                content = post.content,
+                author = UserSummaryResponse.from(author),
+                category = CategorySummaryResponse.from(category),
+                imageAttachments = post.imageAttachments.map { 
+                    ImageAttachmentResponse.from(it, post.id.value.toString()) 
+                },
+                createdAt = post.createdAt,
+                likeCount = post.likeCount,
+                updatedAt = post.updatedAt
             )
-        } ?: emptyList()
-        
-        val post = if (imageRequests.isNotEmpty()) {
-            postService.createPostWithImages(
-                title = title,
-                content = content,
-                authorId = authorIdValue,
-                categoryId = categoryIdValue,
-                images = imageRequests
-            )
-        } else {
-            postService.createPost(
-                title = title,
-                content = content,
-                authorId = authorIdValue,
-                categoryId = categoryIdValue
-            )
+            
+            logger.info("Successfully created post with ID: ${post.id.value}")
+            ResponseEntity.status(HttpStatus.CREATED).body(response)
+            
+        } catch (e: Exception) {
+            logger.error("Failed to create post with images", e)
+            throw e
         }
-        
-        val author = userService.getUserById(post.authorId)
-        val category = categoryService.getCategoryById(post.categoryId)
-        
-        val response = PostResponse(
-            id = post.id.value.toString(),
-            title = post.title,
-            content = post.content,
-            author = UserSummaryResponse.from(author),
-            category = CategorySummaryResponse.from(category),
-            imageAttachments = post.imageAttachments.map { 
-                ImageAttachmentResponse.from(it, post.id.value.toString()) 
-            },
-            createdAt = post.createdAt,
-            likeCount = post.likeCount,
-            updatedAt = post.updatedAt
-        )
-        return ResponseEntity.status(HttpStatus.CREATED).body(response)
     }
 
     /**
