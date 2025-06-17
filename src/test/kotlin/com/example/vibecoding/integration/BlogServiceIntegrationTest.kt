@@ -79,7 +79,9 @@ class BlogServiceIntegrationTest {
             title = "My First Post",
             content = "This is the content of my first post",
             authorId = userId,
-            categoryId = categoryId
+            categoryId = categoryId,
+            authorName = "Test User",
+            category = "Test Category"
         )
         
         val postResult = restTemplate.postForEntity(
@@ -227,4 +229,3 @@ class BlogServiceIntegrationTest {
         assertEquals(true, emailResponse.get("available").asBoolean())
     }
 }
-
