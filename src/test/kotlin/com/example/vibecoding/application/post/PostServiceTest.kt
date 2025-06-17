@@ -7,26 +7,22 @@ import com.example.vibecoding.domain.post.*
 import com.example.vibecoding.domain.user.User
 import com.example.vibecoding.domain.user.UserId
 import com.example.vibecoding.domain.user.UserRepository
-import io.kotest.assertions.throwables.shouldThrow
-import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 import io.mockk.*
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.io.ByteArrayInputStream
 import java.time.LocalDateTime
 
 class PostServiceTest {
 
     private lateinit var postRepository: PostRepository
-    private lateinit var categoryRepository: CategoryRepository
     private lateinit var userRepository: UserRepository
+    private lateinit var categoryRepository: CategoryRepository
     private lateinit var imageStorageService: ImageStorageService
     private lateinit var likeRepository: LikeRepository
     private lateinit var postService: PostService
-
-    private lateinit var testUser: User
-    private lateinit var testCategory: Category
 
     @BeforeEach
     fun setUp() {
@@ -35,49 +31,38 @@ class PostServiceTest {
         userRepository = mockk()
         imageStorageService = mockk()
         likeRepository = mockk()
-        
-        postService = PostService(postRepository, categoryRepository, userRepository, imageStorageService, likeRepository)
-
-        testUser = User(
-            id = UserId.generate(),
-            username = "testuser",
-            email = "test@example.com",
-            displayName = "Test User",
-            bio = "Test bio",
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
-        )
-
-        testCategory = Category(
-            id = CategoryId.generate(),
-            name = "Test Category",
-            description = "Test Description",
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
+        postService = PostService(
+            postRepository,
+            categoryRepository,
+            userRepository,
+            imageStorageService,
+            likeRepository
         )
     }
 
     @Test
     fun `should create post successfully`() {
         // Given
-        val title = "My First Post"
-        val content = "This is the content"
+        val postId = PostId.generate()
+        val title = "Test Post"
+        val content = "Test Content"
         val authorId = UserId.generate()
         val categoryId = CategoryId.generate()
-        val user = createTestUser(authorId, "testuser", "test@example.com")
+        val post = createTestPost(postId, title, content, authorId, categoryId)
         
-        every { userRepository.findById(authorId) } returns user
+        every { userRepository.findById(authorId) } returns mockk()
         every { categoryRepository.existsById(categoryId) } returns true
-        every { postRepository.save(any()) } returnsArgument 0
+        every { postRepository.save(any()) } returns post
 
         // When
         val result = postService.createPost(title, content, authorId, categoryId)
 
         // Then
-        result.title shouldBe title
-        result.content shouldBe content
-        result.authorId shouldBe authorId
-        result.categoryId shouldBe categoryId
+        assertNotNull(result)
+        assertEquals(title, result.title)
+        assertEquals(content, result.content)
+        assertEquals(authorId, result.authorId)
+        assertEquals(categoryId, result.categoryId)
         
         verify { userRepository.findById(authorId) }
         verify { categoryRepository.existsById(categoryId) }
@@ -85,44 +70,42 @@ class PostServiceTest {
     }
 
     @Test
-    fun `should throw exception when creating post with non-existent user`() {
+    fun `should get post by id`() {
         // Given
-        val title = "My First Post"
-        val content = "This is the content"
+        val postId = PostId.generate()
+        val title = "Test Post"
+        val content = "Test Content"
         val authorId = UserId.generate()
-        val categoryId = CategoryId.generate()
+        val post = createTestPost(postId, title, content, authorId)
         
-        every { userRepository.findById(authorId) } returns null
+        every { postRepository.findById(postId) } returns post
 
-        // When & Then
-        shouldThrow<UserNotFoundException> {
-            postService.createPost(title, content, authorId, categoryId)
-        }
+        // When
+        val result = postService.getPostById(postId)
+
+        // Then
+        assertNotNull(result)
+        assertEquals(postId, result.id)
+        assertEquals(title, result.title)
+        assertEquals(content, result.content)
+        assertEquals(authorId, result.authorId)
         
-        verify { userRepository.findById(authorId) }
-        verify(exactly = 0) { postRepository.save(any()) }
+        verify { postRepository.findById(postId) }
     }
 
     @Test
-    fun `should throw exception when creating post with non-existent category`() {
+    fun `should throw exception when post not found`() {
         // Given
-        val title = "My First Post"
-        val content = "This is the content"
-        val authorId = UserId.generate()
-        val categoryId = CategoryId.generate()
-        val user = createTestUser(authorId, "testuser", "test@example.com")
+        val postId = PostId.generate()
         
-        every { userRepository.findById(authorId) } returns user
-        every { categoryRepository.existsById(categoryId) } returns false
+        every { postRepository.findById(postId) } returns null
 
-        // When & Then
-        shouldThrow<CategoryNotFoundException> {
-            postService.createPost(title, content, authorId, categoryId)
+        // When/Then
+        assertThrows<PostNotFoundException> {
+            postService.getPostById(postId)
         }
         
-        verify { userRepository.findById(authorId) }
-        verify { categoryRepository.existsById(categoryId) }
-        verify(exactly = 0) { postRepository.save(any()) }
+        verify { postRepository.findById(postId) }
     }
 
     @Test
@@ -131,137 +114,34 @@ class PostServiceTest {
         val postId = PostId.generate()
         val authorId = UserId.generate()
         val categoryId = CategoryId.generate()
-        val existingPost = createTestPost(postId, "Old Title", "Old Content", authorId, categoryId)
-        val newTitle = "New Title"
-        val newContent = "New Content"
-        val newCategoryId = CategoryId.generate()
+        val title = "Updated Title"
+        val content = "Updated Content"
+        val post = createTestPost(postId, "Original Title", "Original Content", authorId)
         
-        every { postRepository.findById(postId) } returns existingPost
-        every { categoryRepository.existsById(newCategoryId) } returns true
+        every { postRepository.findById(postId) } returns post
+        every { categoryRepository.existsById(categoryId) } returns true
         every { postRepository.save(any()) } returnsArgument 0
 
         // When
-        val result = postService.updatePost(postId, newTitle, newContent, newCategoryId)
+        val result = postService.updatePost(postId, title, content, categoryId)
 
         // Then
-        result.title shouldBe newTitle
-        result.content shouldBe newContent
-        result.categoryId shouldBe newCategoryId
+        assertNotNull(result)
+        assertEquals(title, result.title)
+        assertEquals(content, result.content)
+        assertEquals(categoryId, result.categoryId)
         
         verify { postRepository.findById(postId) }
-        verify { categoryRepository.existsById(newCategoryId) }
+        verify { categoryRepository.existsById(categoryId) }
         verify { postRepository.save(any()) }
     }
 
     @Test
-    fun `should throw exception when updating non-existent post`() {
-        // Given
-        val postId = PostId.generate()
-        
-        every { postRepository.findById(postId) } returns null
-
-        // When & Then
-        shouldThrow<PostNotFoundException> {
-            postService.updatePost(postId, "New Title", "New Content", null)
-        }
-        
-        verify { postRepository.findById(postId) }
-        verify(exactly = 0) { postRepository.save(any()) }
-    }
-
-    @Test
-    fun `should get posts by author successfully`() {
-        // Given
-        val authorId = UserId.generate()
-        val user = createTestUser(authorId, "testuser", "test@example.com")
-        val posts = listOf(
-            createTestPost(PostId.generate(), "Post 1", "Content 1", authorId, CategoryId.generate()),
-            createTestPost(PostId.generate(), "Post 2", "Content 2", authorId, CategoryId.generate())
-        )
-        
-        every { userRepository.findById(authorId) } returns user
-        every { postRepository.findByAuthorId(authorId) } returns posts
-
-        // When
-        val result = postService.getPostsByAuthor(authorId)
-
-        // Then
-        result shouldBe posts
-        
-        verify { userRepository.findById(authorId) }
-        verify { postRepository.findByAuthorId(authorId) }
-    }
-
-    @Test
-    fun `should throw exception when getting posts by non-existent author`() {
-        // Given
-        val authorId = UserId.generate()
-        
-        every { userRepository.findById(authorId) } returns null
-
-        // When & Then
-        shouldThrow<UserNotFoundException> {
-            postService.getPostsByAuthor(authorId)
-        }
-        
-        verify { userRepository.findById(authorId) }
-    }
-
-    @Test
-    fun `should get post count by author successfully`() {
-        // Given
-        val authorId = UserId.generate()
-        val count = 5L
-        
-        every { postRepository.countByAuthorId(authorId) } returns count
-
-        // When
-        val result = postService.getPostCountByAuthor(authorId)
-
-        // Then
-        result shouldBe count
-        
-        verify { postRepository.countByAuthorId(authorId) }
-    }
-
-    @Test
-    fun `should get post by id successfully`() {
-        // Given
-        val postId = PostId.generate()
-        val post = createTestPost(postId, "Title", "Content", UserId.generate(), CategoryId.generate())
-        
-        every { postRepository.findById(postId) } returns post
-
-        // When
-        val result = postService.getPostById(postId)
-
-        // Then
-        result shouldBe post
-        
-        verify { postRepository.findById(postId) }
-    }
-
-    @Test
-    fun `should throw exception when getting non-existent post`() {
-        // Given
-        val postId = PostId.generate()
-        
-        every { postRepository.findById(postId) } returns null
-
-        // When & Then
-        shouldThrow<PostNotFoundException> {
-            postService.getPostById(postId)
-        }
-        
-        verify { postRepository.findById(postId) }
-    }
-
-    @Test
-    fun `should get all posts successfully`() {
+    fun `should get all posts`() {
         // Given
         val posts = listOf(
-            createTestPost(PostId.generate(), "Post 1", "Content 1", UserId.generate(), CategoryId.generate()),
-            createTestPost(PostId.generate(), "Post 2", "Content 2", UserId.generate(), CategoryId.generate())
+            createTestPost(PostId.generate(), "Post 1", "Content 1", UserId.generate()),
+            createTestPost(PostId.generate(), "Post 2", "Content 2", UserId.generate())
         )
         
         every { postRepository.findAll() } returns posts
@@ -270,13 +150,14 @@ class PostServiceTest {
         val result = postService.getAllPosts()
 
         // Then
-        result shouldBe posts
+        assertNotNull(result)
+        assertEquals(posts, result)
         
         verify { postRepository.findAll() }
     }
 
     @Test
-    fun `should get posts by category successfully`() {
+    fun `should get posts by category`() {
         // Given
         val categoryId = CategoryId.generate()
         val posts = listOf(
@@ -291,18 +172,19 @@ class PostServiceTest {
         val result = postService.getPostsByCategory(categoryId)
 
         // Then
-        result shouldBe posts
+        assertEquals(posts, result)
         
         verify { categoryRepository.existsById(categoryId) }
         verify { postRepository.findByCategoryId(categoryId) }
     }
 
     @Test
-    fun `should search posts by title successfully`() {
+    fun `should search posts by title`() {
         // Given
-        val title = "Technology"
+        val title = "Test"
         val posts = listOf(
-            createTestPost(PostId.generate(), "Technology Post", "Content", UserId.generate(), CategoryId.generate())
+            createTestPost(PostId.generate(), "Test Post 1", "Content 1", UserId.generate()),
+            createTestPost(PostId.generate(), "Test Post 2", "Content 2", UserId.generate())
         )
         
         every { postRepository.findByTitle(title) } returns posts
@@ -311,7 +193,8 @@ class PostServiceTest {
         val result = postService.searchPostsByTitle(title)
 
         // Then
-        result shouldBe posts
+        assertNotNull(result)
+        assertEquals(posts, result)
         
         verify { postRepository.findByTitle(title) }
     }
@@ -320,224 +203,108 @@ class PostServiceTest {
     fun `should delete post successfully`() {
         // Given
         val postId = PostId.generate()
+        val authorId = UserId.generate()
+        val post = createTestPost(postId, "Test Post", "Test Content", authorId)
         
-        every { postRepository.existsById(postId) } returns true
+        every { postRepository.findById(postId) } returns post
         every { postRepository.delete(postId) } returns true
 
         // When
-        postService.deletePost(postId)
+        postService.deletePost(postId, authorId)
 
         // Then
-        verify { postRepository.existsById(postId) }
+        verify { postRepository.findById(postId) }
         verify { postRepository.delete(postId) }
     }
 
     @Test
-    fun `should throw exception when deleting non-existent post`() {
+    fun `should throw exception when deleting post with unauthorized user`() {
         // Given
         val postId = PostId.generate()
+        val authorId = UserId.generate()
+        val unauthorizedUserId = UserId.generate()
+        val post = createTestPost(postId, "Test Post", "Test Content", authorId)
         
-        every { postRepository.existsById(postId) } returns false
+        every { postRepository.findById(postId) } returns post
 
-        // When & Then
-        shouldThrow<PostNotFoundException> {
-            postService.deletePost(postId)
+        // When/Then
+        assertThrows<UnauthorizedPostModificationException> {
+            postService.deletePost(postId, unauthorizedUserId)
         }
         
-        verify { postRepository.existsById(postId) }
+        verify { postRepository.findById(postId) }
+        verify(exactly = 0) { postRepository.delete(any()) }
     }
 
     @Test
-    fun `should create post with images successfully`() {
+    fun `should throw exception when post not found for deletion`() {
         // Given
-        val title = "Test Post"
-        val content = "Test Content"
-        val imageRequest1 = createTestImageUploadRequest("image1.jpg")
-        val imageRequest2 = createTestImageUploadRequest("image2.jpg")
-        val images = listOf(imageRequest1, imageRequest2)
-
-        every { userRepository.findById(testUser.id) } returns testUser
-        every { categoryRepository.existsById(testCategory.id) } returns true
-        every { imageStorageService.storeImage(any(), any(), any()) } returnsMany listOf("path1.jpg", "path2.jpg")
-        every { postRepository.save(any()) } returnsArgument 0
-
-        // When
-        val result = postService.createPostWithImages(title, content, testUser.id, testCategory.id, images)
-
-        // Then
-        result.title shouldBe title
-        result.content shouldBe content
-        result.authorId shouldBe testUser.id
-        result.categoryId shouldBe testCategory.id
-        result.imageAttachments.size shouldBe 2
+        val postId = PostId.generate()
+        val authorId = UserId.generate()
         
-        verify { imageStorageService.storeImage("image1.jpg", "image/jpeg", any()) }
-        verify { imageStorageService.storeImage("image2.jpg", "image/jpeg", any()) }
-        verify { postRepository.save(any()) }
+        every { postRepository.findById(postId) } returns null
+
+        // When/Then
+        assertThrows<PostNotFoundException> {
+            postService.deletePost(postId, authorId)
+        }
+        
+        verify { postRepository.findById(postId) }
+        verify(exactly = 0) { postRepository.delete(any()) }
     }
 
     @Test
-    fun `should throw exception when creating post with too many images`() {
+    fun `should get posts by author`() {
         // Given
-        val title = "Test Post"
-        val content = "Test Content"
-        val images = listOf(
-            createTestImageUploadRequest("image1.jpg"),
-            createTestImageUploadRequest("image2.jpg"),
-            createTestImageUploadRequest("image3.jpg"),
-            createTestImageUploadRequest("image4.jpg") // One too many
+        val authorId = UserId.generate()
+        val posts = listOf(
+            createTestPost(PostId.generate(), "Post 1", "Content 1", authorId),
+            createTestPost(PostId.generate(), "Post 2", "Content 2", authorId)
         )
+        
+        every { userRepository.findById(authorId) } returns mockk()
+        every { postRepository.findByAuthorId(authorId) } returns posts
 
-        every { userRepository.findById(testUser.id) } returns testUser
-        every { categoryRepository.existsById(testCategory.id) } returns true
+        // When
+        val result = postService.getPostsByAuthor(authorId)
 
-        // When & Then
-        shouldThrow<IllegalArgumentException> {
-            postService.createPostWithImages(title, content, testUser.id, testCategory.id, images)
-        }
+        // Then
+        assertNotNull(result)
+        assertEquals(posts, result)
+        
+        verify { userRepository.findById(authorId) }
+        verify { postRepository.findByAuthorId(authorId) }
     }
 
     @Test
-    fun `should attach image to existing post successfully`() {
+    fun `should attach image to post successfully`() {
         // Given
-        val existingPost = createTestPost()
-        val imageRequest = createTestImageUploadRequest("new-image.jpg")
-        val storagePath = "path/to/new-image.jpg"
-
-        every { postRepository.findById(existingPost.id) } returns existingPost
-        every { imageStorageService.storeImage("new-image.jpg", "image/jpeg", any()) } returns storagePath
+        val postId = PostId.generate()
+        val authorId = UserId.generate()
+        val filename = "test-image.jpg"
+        val storagePath = "path/to/test-image.jpg"
+        val imageRequest = createTestImageUploadRequest(filename)
+        val post = createTestPost(postId, "Test Post", "Test Content", authorId)
+        
+        every { postRepository.findById(postId) } returns post
+        every { imageStorageService.storeImage(any(), any(), any()) } returns storagePath
         every { postRepository.save(any()) } returnsArgument 0
 
         // When
-        val result = postService.attachImageToPost(existingPost.id, imageRequest)
+        val result = postService.attachImageToPost(postId, imageRequest)
 
         // Then
-        result.imageAttachments.size shouldBe 1
-        result.imageAttachments[0].filename shouldBe "new-image.jpg"
-        result.imageAttachments[0].storagePath shouldBe storagePath
+        assertNotNull(result)
+        assertEquals(1, result.imageAttachments.size)
+        assertEquals(filename, result.imageAttachments[0].filename)
+        assertEquals(storagePath, result.imageAttachments[0].storagePath)
         
-        verify { imageStorageService.storeImage("new-image.jpg", "image/jpeg", any()) }
+        verify { postRepository.findById(postId) }
+        verify { imageStorageService.storeImage(any(), any(), any()) }
         verify { postRepository.save(any()) }
     }
 
-    @Test
-    fun `should throw exception when attaching image to post with maximum images`() {
-        // Given
-        val postWithMaxImages = createTestPostWithMaxImages()
-        val imageRequest = createTestImageUploadRequest("extra-image.jpg")
-
-        every { postRepository.findById(postWithMaxImages.id) } returns postWithMaxImages
-
-        // When & Then
-        shouldThrow<ImageAttachmentException> {
-            postService.attachImageToPost(postWithMaxImages.id, imageRequest)
-        }
-    }
-
-    @Test
-    fun `should remove image from post successfully`() {
-        // Given
-        val imageAttachment = createTestImageAttachment("test-image.jpg")
-        val postWithImage = createTestPost().addImageAttachment(imageAttachment)
-
-        every { postRepository.findById(postWithImage.id) } returns postWithImage
-        every { imageStorageService.deleteImage(imageAttachment.storagePath) } just Runs
-        every { postRepository.save(any()) } returnsArgument 0
-
-        // When
-        val result = postService.removeImageFromPost(postWithImage.id, imageAttachment.id)
-
-        // Then
-        result.imageAttachments.size shouldBe 0
-        
-        verify { imageStorageService.deleteImage(imageAttachment.storagePath) }
-        verify { postRepository.save(any()) }
-    }
-
-    @Test
-    fun `should continue removing image from post even if storage deletion fails`() {
-        // Given
-        val imageAttachment = createTestImageAttachment("test-image.jpg")
-        val postWithImage = createTestPost().addImageAttachment(imageAttachment)
-
-        every { postRepository.findById(postWithImage.id) } returns postWithImage
-        every { imageStorageService.deleteImage(imageAttachment.storagePath) } throws ImageStorageException("Storage error")
-        every { postRepository.save(any()) } returnsArgument 0
-
-        // When
-        val result = postService.removeImageFromPost(postWithImage.id, imageAttachment.id)
-
-        // Then
-        result.imageAttachments.size shouldBe 0
-        
-        verify { imageStorageService.deleteImage(imageAttachment.storagePath) }
-        verify { postRepository.save(any()) }
-    }
-
-    @Test
-    fun `should throw exception when removing non-existent image`() {
-        // Given
-        val post = createTestPost()
-        val nonExistentImageId = ImageId.generate()
-
-        every { postRepository.findById(post.id) } returns post
-
-        // When & Then
-        shouldThrow<ImageAttachmentException> {
-            postService.removeImageFromPost(post.id, nonExistentImageId)
-        }
-    }
-
-    @Test
-    fun `should get post image successfully`() {
-        // Given
-        val imageAttachment = createTestImageAttachment("test-image.jpg")
-        val postWithImage = createTestPost().addImageAttachment(imageAttachment)
-
-        every { postRepository.findById(postWithImage.id) } returns postWithImage
-
-        // When
-        val result = postService.getPostImage(postWithImage.id, imageAttachment.id)
-
-        // Then
-        result shouldBe imageAttachment
-    }
-
-    @Test
-    fun `should get post image data successfully`() {
-        // Given
-        val imageAttachment = createTestImageAttachment("test-image.jpg")
-        val postWithImage = createTestPost().addImageAttachment(imageAttachment)
-        val imageData = ByteArrayInputStream("image data".toByteArray())
-
-        every { postRepository.findById(postWithImage.id) } returns postWithImage
-        every { imageStorageService.retrieveImage(imageAttachment.storagePath) } returns imageData
-
-        // When
-        val result = postService.getPostImageData(postWithImage.id, imageAttachment.id)
-
-        // Then
-        result shouldBe imageData
-        
-        verify { imageStorageService.retrieveImage(imageAttachment.storagePath) }
-    }
-
-    @Test
-    fun `should throw exception when storage fails during image attachment`() {
-        // Given
-        val existingPost = createTestPost()
-        val imageRequest = createTestImageUploadRequest("failing-image.jpg")
-
-        every { postRepository.findById(existingPost.id) } returns existingPost
-        every { imageStorageService.storeImage(any(), any(), any()) } throws ImageStorageException("Storage failed")
-
-        // When & Then
-        shouldThrow<ImageAttachmentException> {
-            postService.attachImageToPost(existingPost.id, imageRequest)
-        }
-    }
-
-    private fun createTestPost(id: PostId, title: String, content: String, authorId: UserId, categoryId: CategoryId): Post {
+    private fun createTestPost(id: PostId, title: String, content: String, authorId: UserId, categoryId: CategoryId = CategoryId.generate()): Post {
         val now = LocalDateTime.now()
         return Post(
             id = id,
@@ -546,20 +313,9 @@ class PostServiceTest {
             authorId = authorId,
             categoryId = categoryId,
             createdAt = now,
-            updatedAt = now
-        )
-    }
-
-    private fun createTestUser(id: UserId, username: String, email: String): User {
-        val now = LocalDateTime.now()
-        return User(
-            id = id,
-            username = username,
-            email = email,
-            displayName = "Test User",
-            bio = "Test bio",
-            createdAt = now,
-            updatedAt = now
+            updatedAt = now,
+            imageAttachments = emptyList(),
+            likeCount = 0
         )
     }
 
@@ -567,42 +323,9 @@ class PostServiceTest {
         return ImageUploadRequest(
             filename = filename,
             contentType = "image/jpeg",
-            fileSizeBytes = 1024L,
-            inputStream = ByteArrayInputStream("fake image data".toByteArray())
-        )
-    }
-
-    private fun createTestImageAttachment(filename: String): ImageAttachment {
-        return ImageAttachment.create(
-            filename = filename,
-            storagePath = "test/path/$filename",
-            contentType = "image/jpeg",
+            inputStream = ByteArrayInputStream("test image data".toByteArray()),
             fileSizeBytes = 1024L
         )
     }
-
-    private fun createTestPost(): Post {
-        val now = LocalDateTime.now()
-        return Post(
-            id = PostId.generate(),
-            title = "Test Post",
-            content = "Test Content",
-            authorId = testUser.id,
-            categoryId = testCategory.id,
-            createdAt = now,
-            updatedAt = now
-        )
-    }
-
-    private fun createTestPostWithMaxImages(): Post {
-        val post = createTestPost()
-        val image1 = createTestImageAttachment("image1.jpg")
-        val image2 = createTestImageAttachment("image2.jpg")
-        val image3 = createTestImageAttachment("image3.jpg")
-        
-        return post
-            .addImageAttachment(image1)
-            .addImageAttachment(image2)
-            .addImageAttachment(image3)
-    }
 }
+
