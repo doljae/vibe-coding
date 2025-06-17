@@ -240,7 +240,7 @@ class PostDetailPage {
             
         } catch (error) {
             console.error('Failed to delete post:', error);
-            this.showNotification('게시글 삭제에 실패했습니다.');
+            this.showNotification('게시글 삭제에 실패했습니다.', 'error');
         }
     }
 
@@ -249,12 +249,12 @@ class PostDetailPage {
         utils.showError(container, message);
     }
 
-    showNotification(message) {
+    showNotification(message, type = 'success') {
         // Create notification element
         const notification = document.createElement('div');
-        notification.className = 'notification';
+        notification.className = `notification ${type}`;
         notification.innerHTML = `
-            <i class="fas fa-info-circle"></i>
+            <i class="fas ${type === 'error' ? 'fa-exclamation-triangle' : 'fa-info-circle'}"></i>
             ${message}
         `;
         
@@ -270,7 +270,9 @@ class PostDetailPage {
         setTimeout(() => {
             notification.classList.remove('show');
             setTimeout(() => {
-                document.body.removeChild(notification);
+                if (document.body.contains(notification)) {
+                    document.body.removeChild(notification);
+                }
             }, 300);
         }, 3000);
     }

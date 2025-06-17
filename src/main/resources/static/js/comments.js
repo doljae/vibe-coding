@@ -41,7 +41,7 @@ class CommentsManager {
             
             const response = await api.comments.getForPost(this.postId);
             
-            // Convert nested structure to flat array
+            // Store all comments in a flat array for easier access
             this.comments = [];
             if (response.comments) {
                 response.comments.forEach(commentWithReplies => {
@@ -117,7 +117,7 @@ class CommentsManager {
                                 <i class="fas fa-edit"></i>
                                 수정
                             </button>
-                            <button class="comment-action delete-btn" onclick="commentsManager.deleteComment('${comment.id}')">
+                            <button class="comment-action delete-btn" onclick="commentsManager.deleteComment('${comment.id}', '${comment.authorId}')">
                                 <i class="fas fa-trash"></i>
                                 삭제
                             </button>
@@ -160,7 +160,7 @@ class CommentsManager {
                                 <i class="fas fa-edit"></i>
                                 수정
                             </button>
-                            <button class="comment-action delete-btn" onclick="commentsManager.deleteComment('${reply.id}')">
+                            <button class="comment-action delete-btn" onclick="commentsManager.deleteComment('${reply.id}', '${reply.authorId}')">
                                 <i class="fas fa-trash"></i>
                                 삭제
                             </button>
@@ -257,13 +257,20 @@ class CommentsManager {
                 postId: this.postId
             };
 
-            await api.comments.create(commentData);
+            const response = await api.comments.create(commentData);
             
             // Clear form
             contentInput.value = '';
             
-            // Reload comments
-            await this.loadComments();
+            // Add the new comment to our local array
+            if (response) {
+                this.comments.push(response);
+                this.renderComments();
+                this.updateCommentsCount(this.comments.length);
+            } else {
+                // If no response, reload all comments
+                await this.loadComments();
+            }
             
             this.showNotification('댓글이 작성되었습니다!');
             
@@ -301,13 +308,20 @@ class CommentsManager {
                 parentCommentId: parentId
             };
 
-            await api.comments.createReply(replyData);
+            const response = await api.comments.createReply(replyData);
             
             // Hide reply form
             this.hideReplyForm();
             
-            // Reload comments
-            await this.loadComments();
+            // Add the new reply to our local array
+            if (response) {
+                this.comments.push(response);
+                this.renderComments();
+                this.updateCommentsCount(this.comments.length);
+            } else {
+                // If no response, reload all comments
+                await this.loadComments();
+            }
             
             this.showNotification('답글이 작성되었습니다!');
             
@@ -370,10 +384,19 @@ class CommentsManager {
                 authorId: comment.authorId
             };
 
-            await api.comments.update(commentId, updateData);
+            const updatedComment = await api.comments.update(commentId, updateData);
             
-            // Reload comments
-            await this.loadComments();
+            // Update the comment in our local array
+            if (updatedComment) {
+                const index = this.comments.findIndex(c => c.id === commentId);
+                if (index !== -1) {
+                    this.comments[index] = updatedComment;
+                    this.renderComments();
+                }
+            } else {
+                // If no response, reload all comments
+                await this.loadComments();
+            }
             
             this.showNotification('댓글이 수정되었습니다!');
             
@@ -383,16 +406,31 @@ class CommentsManager {
         }
     }
 
-    async deleteComment(commentId) {
+    async deleteComment(commentId, authorId) {
         if (!confirm('정말로 이 댓글을 삭제하시겠습니까?')) {
             return;
         }
 
         try {
-            await api.comments.delete(commentId);
+            await api.comments.delete(commentId, authorId);
             
-            // Reload comments
-            await this.loadComments();
+            // Remove the comment from our local array
+            const index = this.comments.findIndex(c => c.id === commentId);
+            if (index !== -1) {
+                // If it's a root comment, also remove all replies
+                const comment = this.comments[index];
+                if (!comment.parentCommentId) {
+                    // Remove all replies to this comment
+                    this.comments = this.comments.filter(c => c.parentCommentId !== commentId);
+                }
+                // Remove the comment itself
+                this.comments.splice(index, 1);
+                this.renderComments();
+                this.updateCommentsCount(this.comments.length);
+            } else {
+                // If comment not found in local array, reload all comments
+                await this.loadComments();
+            }
             
             this.showNotification('댓글이 삭제되었습니다!');
             

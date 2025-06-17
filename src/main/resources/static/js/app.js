@@ -211,7 +211,8 @@ const api = {
         },
 
         delete(id, authorId) {
-            return api.call(`/comments/${id}?authorId=${authorId}`, {
+            const queryParams = authorId ? `?authorId=${authorId}` : '';
+            return api.call(`/comments/${id}${queryParams}`, {
                 method: 'DELETE'
             });
         }
@@ -303,7 +304,7 @@ async function loadRecentPosts() {
     if (!container) return;
 
     try {
-        utils.showLoading(container, '최근 게시글을 불러��는 중...');
+        utils.showLoading(container, '최근 게시글을 불러���는 중...');
         
         const posts = await api.posts.getAll();
         
