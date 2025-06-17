@@ -1,24 +1,18 @@
 package com.example.vibecoding.presentation.controller
 
-import com.example.vibecoding.application.comment.CommentNotFoundException
-import com.example.vibecoding.application.comment.CommentService
-import com.example.vibecoding.application.comment.CommentWithReplies
-import com.example.vibecoding.application.comment.UnauthorizedCommentModificationException
-import com.example.vibecoding.application.user.UserService
+import com.example.vibecoding.application.comment.*
 import com.example.vibecoding.domain.comment.Comment
 import com.example.vibecoding.domain.comment.CommentId
 import com.example.vibecoding.domain.post.PostId
-import com.example.vibecoding.domain.user.User
 import com.example.vibecoding.domain.user.UserId
-import com.example.vibecoding.presentation.dto.CreateCommentRequest
-import com.example.vibecoding.presentation.dto.CreateReplyRequest
-import com.example.vibecoding.presentation.dto.UpdateCommentRequest
+import com.example.vibecoding.presentation.dto.CommentCreateRequest
+import com.example.vibecoding.presentation.dto.CommentReplyRequest
+import com.example.vibecoding.presentation.dto.CommentUpdateRequest
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
-import io.mockk.just
-import io.mockk.runs
 import io.mockk.verify
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
@@ -27,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import java.time.LocalDateTime
+import java.util.*
 
 @WebMvcTest(CommentController::class)
 class CommentControllerTest {
@@ -40,265 +35,171 @@ class CommentControllerTest {
     @MockkBean
     private lateinit var commentService: CommentService
 
-    @MockkBean
-    private lateinit var userService: UserService
-
     private val userId = UserId.generate()
     private val postId = PostId.generate()
     private val commentId = CommentId.generate()
-    private val validContent = "This is a valid comment"
 
-    @Test
-    fun `should get comment successfully`() {
-        // Given
-        val comment = Comment.createRootComment(
+    private lateinit var testComment: Comment
+    private lateinit var testReply: Comment
+    private lateinit var commentWithReplies: CommentWithReplies
+
+    @BeforeEach
+    fun setUp() {
+        testComment = Comment(
             id = commentId,
-            content = validContent,
-            authorId = userId,
-            postId = postId
-        )
-
-        every { commentService.getComment(commentId) } returns comment
-        every { userService.getUserById(userId) } returns User(
-            id = userId,
-            username = "testuser",
-            email = "test@example.com",
-            displayName = "Test User",
-            bio = null,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
-        )
-
-        // When & Then
-        mockMvc.perform(get("/api/comments/{commentId}", commentId.value.toString()))
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.id").value(commentId.value.toString()))
-            .andExpect(jsonPath("$.content").value(validContent))
-            .andExpect(jsonPath("$.authorId").value(userId.value.toString()))
-            .andExpect(jsonPath("$.postId").value(postId.value.toString()))
-
-        verify { commentService.getComment(commentId) }
-    }
-
-    @Test
-    fun `should get comment count for post successfully`() {
-        // Given
-        val expectedCount = 5L
-        every { commentService.getCommentCountForPost(postId) } returns expectedCount
-
-        // When & Then
-        mockMvc.perform(get("/api/comments/posts/{postId}/count", postId.value.toString()))
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.count").value(expectedCount))
-
-        verify { commentService.getCommentCountForPost(postId) }
-    }
-
-    @Test
-    fun `should check if comment exists successfully`() {
-        // Given
-        every { commentService.commentExists(commentId) } returns true
-
-        // When & Then
-        mockMvc.perform(get("/api/comments/{commentId}/exists", commentId.value.toString()))
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.exists").value(true))
-
-        verify { commentService.commentExists(commentId) }
-    }
-
-    @Test
-    fun `should get comments for post successfully`() {
-        // Given
-        val rootComment = Comment.createRootComment(
-            id = commentId,
-            content = validContent,
-            authorId = userId,
-            postId = postId
-        )
-        val reply = Comment.createReply(
-            id = CommentId.generate(),
-            content = "Reply content",
+            content = "Test comment",
             authorId = userId,
             postId = postId,
-            parentComment = rootComment
-        )
-        val commentWithReplies = CommentWithReplies(rootComment, listOf(reply))
-
-        every { commentService.getCommentsForPost(postId) } returns listOf(commentWithReplies)
-        every { commentService.getCommentCountForPost(postId) } returns 2L
-        every { userService.getUserById(userId) } returns User(
-            id = userId,
-            username = "testuser",
-            email = "test@example.com",
-            displayName = "Test User",
-            bio = null,
+            parentCommentId = null,
             createdAt = LocalDateTime.now(),
             updatedAt = LocalDateTime.now()
         )
 
-        // When & Then
-        mockMvc.perform(get("/api/comments/posts/{postId}", postId.value.toString()))
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.postId").value(postId.value.toString()))
-            .andExpect(jsonPath("$.totalCommentCount").value(2))
-            .andExpect(jsonPath("$.comments").isArray)
-            .andExpect(jsonPath("$.comments[0].comment.id").value(commentId.value.toString()))
-            .andExpect(jsonPath("$.comments[0].replies").isArray)
-            .andExpect(jsonPath("$.comments[0].replyCount").value(1))
+        testReply = Comment(
+            id = CommentId.generate(),
+            content = "Test reply",
+            authorId = userId,
+            postId = postId,
+            parentCommentId = commentId,
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now()
+        )
 
-        verify { commentService.getCommentsForPost(postId) }
-        verify { commentService.getCommentCountForPost(postId) }
+        commentWithReplies = CommentWithReplies(
+            comment = testComment,
+            replies = listOf(testReply)
+        )
     }
 
     @Test
     fun `should create comment successfully`() {
         // Given
-        val request = CreateCommentRequest(
-            content = validContent,
-            authorName = "testuser",
+        val request = CommentCreateRequest(
+            content = "New comment",
+            authorId = userId.value.toString(),
             postId = postId.value.toString()
         )
 
-        val user = User(
-            id = userId,
-            username = "testuser",
-            email = "test@example.com",
-            displayName = "Test User",
-            bio = null,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
-        )
-
-        val comment = Comment.createRootComment(
-            id = commentId,
-            content = validContent,
-            authorId = userId,
-            postId = postId
-        )
-
-        every { userService.getUserByUsername("testuser") } returns user
-        every { commentService.createComment(validContent, userId, postId) } returns comment
-        every { userService.getUserById(userId) } returns user
+        every { 
+            commentService.createComment(
+                content = request.content,
+                authorId = UserId.from(request.authorId),
+                postId = PostId.from(request.postId)
+            ) 
+        } returns testComment
 
         // When & Then
-        mockMvc.perform(post("/api/comments")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+            post("/api/comments")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+        )
             .andExpect(status().isCreated)
-            .andExpect(jsonPath("$.id").value(commentId.value.toString()))
-            .andExpect(jsonPath("$.content").value(validContent))
-            .andExpect(jsonPath("$.authorId").value(userId.value.toString()))
-            .andExpect(jsonPath("$.authorName").value("Test User"))
-            .andExpect(jsonPath("$.postId").value(postId.value.toString()))
+            .andExpect(jsonPath("$.id").value(testComment.id.value.toString()))
+            .andExpect(jsonPath("$.content").value(testComment.content))
 
-        verify { commentService.createComment(validContent, userId, postId) }
+        verify { 
+            commentService.createComment(
+                content = request.content,
+                authorId = UserId.from(request.authorId),
+                postId = PostId.from(request.postId)
+            ) 
+        }
+    }
+
+    @Test
+    fun `should return 400 when creating comment with invalid data`() {
+        // Given
+        val request = CommentCreateRequest(
+            content = "",  // Invalid: empty content
+            authorId = userId.value.toString(),
+            postId = postId.value.toString()
+        )
+
+        // When & Then
+        mockMvc.perform(
+            post("/api/comments")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().isBadRequest)
+
+        verify(exactly = 0) { commentService.createComment(any(), any(), any()) }
     }
 
     @Test
     fun `should create reply successfully`() {
         // Given
-        val parentCommentId = CommentId.generate()
-        val request = CreateReplyRequest(
-            content = validContent,
-            authorName = "testuser",
+        val request = CommentReplyRequest(
+            content = "New reply",
+            authorId = userId.value.toString(),
             postId = postId.value.toString(),
-            parentCommentId = parentCommentId.value.toString()
+            parentCommentId = commentId.value.toString()
         )
 
-        val user = User(
-            id = userId,
-            username = "testuser",
-            email = "test@example.com",
-            displayName = "Test User",
-            bio = null,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
-        )
-
-        val reply = Comment.createReply(
-            id = commentId,
-            content = validContent,
-            authorId = userId,
-            postId = postId,
-            parentComment = Comment.createRootComment(
-                id = parentCommentId,
-                content = "Parent comment",
-                authorId = userId,
-                postId = postId
-            )
-        )
-
-        every { userService.getUserByUsername("testuser") } returns user
-        every { commentService.createReply(validContent, userId, postId, parentCommentId) } returns reply
-        every { userService.getUserById(userId) } returns user
+        every { 
+            commentService.createReply(
+                content = request.content,
+                authorId = UserId.from(request.authorId),
+                postId = PostId.from(request.postId),
+                parentCommentId = CommentId.from(request.parentCommentId)
+            ) 
+        } returns testReply
 
         // When & Then
-        mockMvc.perform(post("/api/comments/replies")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+            post("/api/comments/reply")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+        )
             .andExpect(status().isCreated)
-            .andExpect(jsonPath("$.id").value(commentId.value.toString()))
-            .andExpect(jsonPath("$.content").value(validContent))
-            .andExpect(jsonPath("$.authorId").value(userId.value.toString()))
-            .andExpect(jsonPath("$.authorName").value("Test User"))
-            .andExpect(jsonPath("$.postId").value(postId.value.toString()))
-            .andExpect(jsonPath("$.parentCommentId").value(parentCommentId.value.toString()))
-            .andExpect(jsonPath("$.isReply").value(true))
+            .andExpect(jsonPath("$.id").value(testReply.id.value.toString()))
+            .andExpect(jsonPath("$.content").value(testReply.content))
+            .andExpect(jsonPath("$.parentCommentId").value(testReply.parentCommentId?.value.toString()))
 
-        verify { commentService.createReply(validContent, userId, postId, parentCommentId) }
+        verify { 
+            commentService.createReply(
+                content = request.content,
+                authorId = UserId.from(request.authorId),
+                postId = PostId.from(request.postId),
+                parentCommentId = CommentId.from(request.parentCommentId)
+            ) 
+        }
     }
 
     @Test
-    fun `should update comment successfully`() {
+    fun `should return 400 when creating reply with invalid data`() {
         // Given
-        val updatedContent = "Updated comment content"
-        val request = UpdateCommentRequest(
-            content = updatedContent,
-            authorId = userId.value.toString()
-        )
-
-        val updatedComment = Comment.createRootComment(
-            id = commentId,
-            content = updatedContent,
-            authorId = userId,
-            postId = postId
-        )
-
-        every { commentService.updateComment(commentId, updatedContent, userId) } returns updatedComment
-        every { userService.getUserById(userId) } returns User(
-            id = userId,
-            username = "testuser",
-            email = "test@example.com",
-            displayName = "Test User",
-            bio = null,
-            createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
+        val request = CommentReplyRequest(
+            content = "New reply",
+            authorId = userId.value.toString(),
+            postId = postId.value.toString(),
+            parentCommentId = ""  // Invalid: empty parent comment ID
         )
 
         // When & Then
-        mockMvc.perform(put("/api/comments/{commentId}", commentId.value.toString())
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+            post("/api/comments/reply")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().isBadRequest)
+
+        verify(exactly = 0) { commentService.createReply(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `should get comment successfully`() {
+        // Given
+        every { commentService.getComment(commentId) } returns testComment
+
+        // When & Then
+        mockMvc.perform(get("/api/comments/${commentId.value}"))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.id").value(commentId.value.toString()))
-            .andExpect(jsonPath("$.content").value(updatedContent))
-            .andExpect(jsonPath("$.authorId").value(userId.value.toString()))
+            .andExpect(jsonPath("$.id").value(testComment.id.value.toString()))
+            .andExpect(jsonPath("$.content").value(testComment.content))
 
-        verify { commentService.updateComment(commentId, updatedContent, userId) }
-    }
-
-    @Test
-    fun `should delete comment successfully`() {
-        // Given
-        every { commentService.deleteComment(commentId, userId) } just runs
-
-        // When & Then
-        mockMvc.perform(delete("/api/comments/{commentId}", commentId.value.toString())
-            .param("authorId", userId.value.toString()))
-            .andExpect(status().isNoContent)
-
-        verify { commentService.deleteComment(commentId, userId) }
+        verify { commentService.getComment(commentId) }
     }
 
     @Test
@@ -307,78 +208,175 @@ class CommentControllerTest {
         every { commentService.getComment(commentId) } throws CommentNotFoundException("Comment not found")
 
         // When & Then
-        mockMvc.perform(get("/api/comments/{commentId}", commentId.value.toString()))
+        mockMvc.perform(get("/api/comments/${commentId.value}"))
             .andExpect(status().isNotFound)
+            .andExpect(jsonPath("$.message").value("Comment not found"))
 
         verify { commentService.getComment(commentId) }
     }
 
     @Test
-    fun `should return 403 when unauthorized user tries to update comment`() {
+    fun `should get comments for post successfully`() {
         // Given
-        val updatedContent = "Updated comment content"
-        val request = UpdateCommentRequest(
-            content = updatedContent,
+        every { commentService.getCommentsForPost(postId) } returns listOf(commentWithReplies)
+
+        // When & Then
+        mockMvc.perform(get("/api/comments/post/${postId.value}"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$[0].comment.id").value(testComment.id.value.toString()))
+            .andExpect(jsonPath("$[0].comment.content").value(testComment.content))
+            .andExpect(jsonPath("$[0].replies[0].id").value(testReply.id.value.toString()))
+            .andExpect(jsonPath("$[0].replies[0].content").value(testReply.content))
+
+        verify { commentService.getCommentsForPost(postId) }
+    }
+
+    @Test
+    fun `should update comment successfully`() {
+        // Given
+        val request = CommentUpdateRequest(
+            content = "Updated content",
             authorId = userId.value.toString()
         )
 
-        every { commentService.updateComment(commentId, updatedContent, userId) } throws 
-            UnauthorizedCommentModificationException("User is not authorized to modify this comment")
+        val updatedComment = testComment.copy(content = "Updated content")
+
+        every { 
+            commentService.updateComment(
+                commentId = commentId,
+                newContent = request.content,
+                authorId = UserId.from(request.authorId)
+            ) 
+        } returns updatedComment
 
         // When & Then
-        mockMvc.perform(put("/api/comments/{commentId}", commentId.value.toString())
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isForbidden)
+        mockMvc.perform(
+            put("/api/comments/${commentId.value}")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.id").value(updatedComment.id.value.toString()))
+            .andExpect(jsonPath("$.content").value(updatedComment.content))
 
-        verify { commentService.updateComment(commentId, updatedContent, userId) }
+        verify { 
+            commentService.updateComment(
+                commentId = commentId,
+                newContent = request.content,
+                authorId = UserId.from(request.authorId)
+            ) 
+        }
+    }
+
+    @Test
+    fun `should return 403 when unauthorized user tries to update comment`() {
+        // Given
+        val request = CommentUpdateRequest(
+            content = "Updated content",
+            authorId = userId.value.toString()
+        )
+
+        every { 
+            commentService.updateComment(
+                commentId = commentId,
+                newContent = request.content,
+                authorId = UserId.from(request.authorId)
+            ) 
+        } throws UnauthorizedCommentModificationException("Unauthorized comment modification")
+
+        // When & Then
+        mockMvc.perform(
+            put("/api/comments/${commentId.value}")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.message").value("Unauthorized comment modification"))
+
+        verify { 
+            commentService.updateComment(
+                commentId = commentId,
+                newContent = request.content,
+                authorId = UserId.from(request.authorId)
+            ) 
+        }
+    }
+
+    @Test
+    fun `should delete comment successfully`() {
+        // Given
+        every { 
+            commentService.deleteComment(
+                commentId = commentId,
+                authorId = userId
+            ) 
+        } returns true
+
+        // When & Then
+        mockMvc.perform(
+            delete("/api/comments/${commentId.value}")
+                .param("authorId", userId.value.toString())
+        )
+            .andExpect(status().isNoContent)
+
+        verify { 
+            commentService.deleteComment(
+                commentId = commentId,
+                authorId = userId
+            ) 
+        }
     }
 
     @Test
     fun `should return 403 when unauthorized user tries to delete comment`() {
         // Given
-        every { commentService.deleteComment(commentId, userId) } throws 
-            UnauthorizedCommentModificationException("User is not authorized to delete this comment")
+        every { 
+            commentService.deleteComment(
+                commentId = commentId,
+                authorId = userId
+            ) 
+        } throws UnauthorizedCommentModificationException("Unauthorized comment deletion")
 
         // When & Then
-        mockMvc.perform(delete("/api/comments/{commentId}", commentId.value.toString())
-            .param("authorId", userId.value.toString()))
+        mockMvc.perform(
+            delete("/api/comments/${commentId.value}")
+                .param("authorId", userId.value.toString())
+        )
             .andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.message").value("Unauthorized comment deletion"))
 
-        verify { commentService.deleteComment(commentId, userId) }
+        verify { 
+            commentService.deleteComment(
+                commentId = commentId,
+                authorId = userId
+            ) 
+        }
     }
 
     @Test
-    fun `should return 400 when creating comment with invalid data`() {
+    fun `should return 404 when deleting non-existent comment`() {
         // Given
-        val request = CreateCommentRequest(
-            content = "",  // Empty content is invalid
-            authorName = "testuser",
-            postId = postId.value.toString()
-        )
+        every { 
+            commentService.deleteComment(
+                commentId = commentId,
+                authorId = userId
+            ) 
+        } throws CommentNotFoundException("Comment not found")
 
         // When & Then
-        mockMvc.perform(post("/api/comments")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isBadRequest)
-    }
-
-    @Test
-    fun `should return 400 when creating reply with invalid data`() {
-        // Given
-        val request = CreateReplyRequest(
-            content = validContent,
-            authorName = "testuser",
-            postId = postId.value.toString(),
-            parentCommentId = ""  // Empty parent comment ID is invalid
+        mockMvc.perform(
+            delete("/api/comments/${commentId.value}")
+                .param("authorId", userId.value.toString())
         )
+            .andExpect(status().isNotFound)
+            .andExpect(jsonPath("$.message").value("Comment not found"))
 
-        // When & Then
-        mockMvc.perform(post("/api/comments/replies")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isBadRequest)
+        verify { 
+            commentService.deleteComment(
+                commentId = commentId,
+                authorId = userId
+            ) 
+        }
     }
 }
 
