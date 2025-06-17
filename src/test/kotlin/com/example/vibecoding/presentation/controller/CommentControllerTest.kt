@@ -34,8 +34,8 @@ class CommentControllerTest {
 
     @BeforeEach
     fun setUp() {
-        commentService = mockk()
-        userService = mockk()
+        commentService = mockk(relaxed = true)
+        userService = mockk(relaxed = true)
         objectMapper = ObjectMapper()
         commentController = CommentController(commentService, userService)
         mockMvc = MockMvcBuilders.standaloneSetup(commentController).build()
@@ -126,3 +126,4 @@ class CommentControllerTest {
         verify { commentService.getCommentCountForPost(postId) }
     }
 }
+
