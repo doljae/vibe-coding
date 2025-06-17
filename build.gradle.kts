@@ -30,6 +30,7 @@ dependencies {
     }
     testImplementation("org.springframework.boot:spring-boot-starter-webflux")
     testImplementation("io.mockk:mockk:1.13.11")
+    testImplementation("io.mockk:mockk-agent:1.13.11")
     testImplementation("io.kotest:kotest-assertions-core:5.8.0")
     testImplementation("io.kotest:kotest-runner-junit5:5.8.0")
     testImplementation("org.jetbrains.kotlin:kotlin-test")
@@ -46,9 +47,8 @@ tasks.withType<KotlinCompile>().configureEach {
 tasks.withType<Test> {
     useJUnitPlatform()
     
-    // Enable ByteBuddy agent JVM arguments for MockK
+    // Enable JVM arguments for testing
     jvmArgs = listOf(
-        "-javaagent:${project.rootDir}/agent/mockk-agent.jar",
         "--add-opens=java.base/java.lang=ALL-UNNAMED",
         "--add-opens=java.base/java.io=ALL-UNNAMED",
         "--add-opens=java.base/java.util=ALL-UNNAMED",
