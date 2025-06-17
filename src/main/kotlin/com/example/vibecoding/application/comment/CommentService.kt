@@ -11,19 +11,33 @@ import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 
 /**
- * Application service for Comment domain operations
+ * Interface for Comment service operations
+ */
+interface CommentService {
+    fun createComment(content: String, authorId: UserId, postId: PostId): Comment
+    fun createReply(content: String, authorId: UserId, postId: PostId, parentCommentId: CommentId): Comment
+    fun updateComment(commentId: CommentId, newContent: String, authorId: UserId): Comment
+    fun deleteComment(commentId: CommentId, authorId: UserId)
+    fun getComment(commentId: CommentId): Comment
+    fun getCommentsForPost(postId: PostId): List<CommentWithReplies>
+    fun getCommentCountForPost(postId: PostId): Long
+    fun commentExists(commentId: CommentId): Boolean
+}
+
+/**
+ * Implementation of CommentService
  */
 @Service
-class CommentService(
+class CommentServiceImpl(
     private val commentRepository: CommentRepository,
     private val postRepository: PostRepository,
     private val userRepository: UserRepository
-) {
+) : CommentService {
 
     /**
      * Create a new root comment on a post
      */
-    fun createComment(
+    override fun createComment(
         content: String,
         authorId: UserId,
         postId: PostId
@@ -49,7 +63,7 @@ class CommentService(
     /**
      * Create a reply to an existing comment
      */
-    fun createReply(
+    override fun createReply(
         content: String,
         authorId: UserId,
         postId: PostId,
@@ -86,7 +100,7 @@ class CommentService(
     /**
      * Update an existing comment
      */
-    fun updateComment(
+    override fun updateComment(
         commentId: CommentId,
         newContent: String,
         authorId: UserId
@@ -106,7 +120,7 @@ class CommentService(
     /**
      * Delete a comment
      */
-    fun deleteComment(commentId: CommentId, authorId: UserId) {
+    override fun deleteComment(commentId: CommentId, authorId: UserId) {
         val existingComment = commentRepository.findById(commentId)
             ?: throw CommentNotFoundException("Comment with id '$commentId' not found")
 
@@ -128,7 +142,7 @@ class CommentService(
     /**
      * Get a comment by ID
      */
-    fun getComment(commentId: CommentId): Comment {
+    override fun getComment(commentId: CommentId): Comment {
         return commentRepository.findById(commentId)
             ?: throw CommentNotFoundException("Comment with id '$commentId' not found")
     }
@@ -136,7 +150,7 @@ class CommentService(
     /**
      * Get all comments for a post with their replies organized hierarchically
      */
-    fun getCommentsForPost(postId: PostId): List<CommentWithReplies> {
+    override fun getCommentsForPost(postId: PostId): List<CommentWithReplies> {
         // Validate that the post exists
         postRepository.findById(postId)
             ?: throw PostNotFoundException("Post with id '$postId' not found")
@@ -152,14 +166,14 @@ class CommentService(
     /**
      * Get comment count for a post
      */
-    fun getCommentCountForPost(postId: PostId): Long {
+    override fun getCommentCountForPost(postId: PostId): Long {
         return commentRepository.countByPostId(postId)
     }
 
     /**
      * Check if a comment exists
      */
-    fun commentExists(commentId: CommentId): Boolean {
+    override fun commentExists(commentId: CommentId): Boolean {
         return commentRepository.existsById(commentId)
     }
 }
@@ -178,3 +192,4 @@ class PostNotFoundException(message: String) : RuntimeException(message)
 class UserNotFoundException(message: String) : RuntimeException(message)
 class UnauthorizedCommentModificationException(message: String) : RuntimeException(message)
 class InvalidCommentReplyException(message: String) : RuntimeException(message)
+

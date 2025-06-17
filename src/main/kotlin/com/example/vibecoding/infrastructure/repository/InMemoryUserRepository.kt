@@ -46,13 +46,11 @@ class InMemoryUserRepository : UserRepository {
         return users.values.any { it.email == email }
     }
 
-    // Additional method for testing
+    /**
+     * Clear all users (for testing purposes)
+     */
     fun clear() {
         users.clear()
-    }
-
-    fun size(): Int {
-        return users.size
     }
 }
 

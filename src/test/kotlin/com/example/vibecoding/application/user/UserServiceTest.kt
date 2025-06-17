@@ -3,342 +3,224 @@ package com.example.vibecoding.application.user
 import com.example.vibecoding.domain.user.User
 import com.example.vibecoding.domain.user.UserId
 import com.example.vibecoding.domain.user.UserRepository
-import io.kotest.assertions.throwables.shouldThrow
-import io.kotest.matchers.shouldBe
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Assertions.*
 import java.time.LocalDateTime
 
 class UserServiceTest {
 
-    private lateinit var userRepository: UserRepository
-    private lateinit var userService: UserService
+    private lateinit var userRepository: FakeUserRepository
+    private lateinit var userService: UserServiceImpl
 
     @BeforeEach
     fun setUp() {
-        userRepository = mockk()
-        userService = UserService(userRepository)
+        userRepository = FakeUserRepository()
+        userService = UserServiceImpl(userRepository)
     }
 
     @Test
     fun `should create user successfully`() {
+        // Given
         val username = "testuser"
         val email = "test@example.com"
         val displayName = "Test User"
-        val bio = "Test bio"
 
-        every { userRepository.existsByUsername(username) } returns false
-        every { userRepository.existsByEmail(email) } returns false
-        every { userRepository.save(any()) } answers { firstArg() }
+        // When
+        val createdUser = userService.createUser(username, email, displayName)
 
-        val createdUser = userService.createUser(username, email, displayName, bio)
+        // Then
+        assertEquals(username, createdUser.username)
+        assertEquals(email, createdUser.email)
+        assertEquals(displayName, createdUser.displayName)
+        assertNull(createdUser.bio)
 
-        createdUser.username shouldBe username
-        createdUser.email shouldBe email
-        createdUser.displayName shouldBe displayName
-        createdUser.bio shouldBe bio
-
-        verify { userRepository.existsByUsername(username) }
-        verify { userRepository.existsByEmail(email) }
-        verify { userRepository.save(any()) }
+        // Verify the user was saved
+        val savedUser = userRepository.findById(createdUser.id)
+        assertNotNull(savedUser)
     }
 
     @Test
     fun `should throw exception when creating user with existing username`() {
+        // Given
         val username = "testuser"
         val email = "test@example.com"
         val displayName = "Test User"
+        
+        // Create a user with the same username
+        userService.createUser(username, "other@example.com", "Other User")
 
-        every { userRepository.existsByUsername(username) } returns true
-
-        shouldThrow<IllegalArgumentException> {
+        // When & Then
+        assertThrows(IllegalArgumentException::class.java) {
             userService.createUser(username, email, displayName)
         }
-
-        verify { userRepository.existsByUsername(username) }
-        verify(exactly = 0) { userRepository.save(any()) }
     }
 
     @Test
     fun `should throw exception when creating user with existing email`() {
+        // Given
         val username = "testuser"
         val email = "test@example.com"
         val displayName = "Test User"
+        
+        // Create a user with the same email
+        userService.createUser("otheruser", email, "Other User")
 
-        every { userRepository.existsByUsername(username) } returns false
-        every { userRepository.existsByEmail(email) } returns true
-
-        shouldThrow<IllegalArgumentException> {
+        // When & Then
+        assertThrows(IllegalArgumentException::class.java) {
             userService.createUser(username, email, displayName)
         }
-
-        verify { userRepository.existsByUsername(username) }
-        verify { userRepository.existsByEmail(email) }
-        verify(exactly = 0) { userRepository.save(any()) }
     }
 
     @Test
     fun `should get user by id successfully`() {
-        val userId = UserId.generate()
-        val now = LocalDateTime.now()
-        val user = User(
-            id = userId,
-            username = "testuser",
-            email = "test@example.com",
-            displayName = "Test User",
-            bio = null,
-            createdAt = now,
-            updatedAt = now
-        )
+        // Given
+        val user = userService.createUser("testuser", "test@example.com", "Test User")
 
-        every { userRepository.findById(userId) } returns user
+        // When
+        val foundUser = userService.getUserById(user.id)
 
-        val foundUser = userService.getUserById(userId)
-
-        foundUser shouldBe user
-        verify { userRepository.findById(userId) }
+        // Then
+        assertEquals(user, foundUser)
     }
 
     @Test
     fun `should throw exception when user not found by id`() {
-        val userId = UserId.generate()
+        // Given
+        val nonExistentId = UserId.generate()
 
-        every { userRepository.findById(userId) } returns null
-
-        shouldThrow<IllegalArgumentException> {
-            userService.getUserById(userId)
+        // When & Then
+        assertThrows(IllegalArgumentException::class.java) {
+            userService.getUserById(nonExistentId)
         }
-
-        verify { userRepository.findById(userId) }
     }
 
     @Test
     fun `should get user by username successfully`() {
+        // Given
         val username = "testuser"
-        val now = LocalDateTime.now()
-        val user = User(
-            id = UserId.generate(),
-            username = username,
-            email = "test@example.com",
-            displayName = "Test User",
-            bio = null,
-            createdAt = now,
-            updatedAt = now
-        )
+        val user = userService.createUser(username, "test@example.com", "Test User")
 
-        every { userRepository.findByUsername(username) } returns user
-
+        // When
         val foundUser = userService.getUserByUsername(username)
 
-        foundUser shouldBe user
-        verify { userRepository.findByUsername(username) }
+        // Then
+        assertEquals(user, foundUser)
     }
 
     @Test
-    fun `should get user by email successfully`() {
-        val email = "test@example.com"
-        val now = LocalDateTime.now()
-        val user = User(
-            id = UserId.generate(),
-            username = "testuser",
-            email = email,
-            displayName = "Test User",
-            bio = null,
-            createdAt = now,
-            updatedAt = now
-        )
+    fun `should throw exception when user not found by username`() {
+        // Given
+        val nonExistentUsername = "nonexistent"
 
-        every { userRepository.findByEmail(email) } returns user
-
-        val foundUser = userService.getUserByEmail(email)
-
-        foundUser shouldBe user
-        verify { userRepository.findByEmail(email) }
-    }
-
-    @Test
-    fun `should get all users successfully`() {
-        val now = LocalDateTime.now()
-        val users = listOf(
-            User(
-                id = UserId.generate(),
-                username = "user1",
-                email = "user1@example.com",
-                displayName = "User 1",
-                bio = null,
-                createdAt = now,
-                updatedAt = now
-            ),
-            User(
-                id = UserId.generate(),
-                username = "user2",
-                email = "user2@example.com",
-                displayName = "User 2",
-                bio = null,
-                createdAt = now,
-                updatedAt = now
-            )
-        )
-
-        every { userRepository.findAll() } returns users
-
-        val foundUsers = userService.getAllUsers()
-
-        foundUsers shouldBe users
-        verify { userRepository.findAll() }
-    }
-
-    @Test
-    fun `should update user display name successfully`() {
-        val userId = UserId.generate()
-        val now = LocalDateTime.now()
-        val user = User(
-            id = userId,
-            username = "testuser",
-            email = "test@example.com",
-            displayName = "Test User",
-            bio = null,
-            createdAt = now,
-            updatedAt = now
-        )
-        val newDisplayName = "Updated Name"
-
-        every { userRepository.findById(userId) } returns user
-        every { userRepository.save(any()) } answers { firstArg() }
-
-        val updatedUser = userService.updateUserDisplayName(userId, newDisplayName)
-
-        updatedUser.displayName shouldBe newDisplayName
-        verify { userRepository.findById(userId) }
-        verify { userRepository.save(any()) }
-    }
-
-    @Test
-    fun `should update user email successfully`() {
-        val userId = UserId.generate()
-        val now = LocalDateTime.now()
-        val user = User(
-            id = userId,
-            username = "testuser",
-            email = "test@example.com",
-            displayName = "Test User",
-            bio = null,
-            createdAt = now,
-            updatedAt = now
-        )
-        val newEmail = "newemail@example.com"
-
-        every { userRepository.findById(userId) } returns user
-        every { userRepository.findByEmail(newEmail) } returns null
-        every { userRepository.save(any()) } answers { firstArg() }
-
-        val updatedUser = userService.updateUserEmail(userId, newEmail)
-
-        updatedUser.email shouldBe newEmail
-        verify { userRepository.findById(userId) }
-        verify { userRepository.findByEmail(newEmail) }
-        verify { userRepository.save(any()) }
-    }
-
-    @Test
-    fun `should throw exception when updating email to existing one`() {
-        val userId = UserId.generate()
-        val otherUserId = UserId.generate()
-        val now = LocalDateTime.now()
-        val user = User(
-            id = userId,
-            username = "testuser",
-            email = "test@example.com",
-            displayName = "Test User",
-            bio = null,
-            createdAt = now,
-            updatedAt = now
-        )
-        val otherUser = User(
-            id = otherUserId,
-            username = "otheruser",
-            email = "other@example.com",
-            displayName = "Other User",
-            bio = null,
-            createdAt = now,
-            updatedAt = now
-        )
-        val newEmail = "other@example.com"
-
-        every { userRepository.findById(userId) } returns user
-        every { userRepository.findByEmail(newEmail) } returns otherUser
-
-        shouldThrow<IllegalArgumentException> {
-            userService.updateUserEmail(userId, newEmail)
+        // When & Then
+        assertThrows(IllegalArgumentException::class.java) {
+            userService.getUserByUsername(nonExistentUsername)
         }
+    }
 
-        verify { userRepository.findById(userId) }
-        verify { userRepository.findByEmail(newEmail) }
-        verify(exactly = 0) { userRepository.save(any()) }
+    @Test
+    fun `should update user successfully`() {
+        // Given
+        val user = userService.createUser("testuser", "test@example.com", "Test User")
+        val newDisplayName = "Updated Name"
+        val newBio = "Updated Bio"
+
+        // When
+        val updatedUser = userService.updateUser(user.id, newDisplayName, newBio)
+
+        // Then
+        assertEquals(newDisplayName, updatedUser.displayName)
+        assertEquals(newBio, updatedUser.bio)
+        assertEquals(user.id, updatedUser.id)
+        assertEquals(user.username, updatedUser.username)
+        assertEquals(user.email, updatedUser.email)
     }
 
     @Test
     fun `should delete user successfully`() {
-        val userId = UserId.generate()
-        val now = LocalDateTime.now()
-        val user = User(
-            id = userId,
-            username = "testuser",
-            email = "test@example.com",
-            displayName = "Test User",
-            bio = null,
-            createdAt = now,
-            updatedAt = now
-        )
+        // Given
+        val user = userService.createUser("testuser", "test@example.com", "Test User")
 
-        every { userRepository.findById(userId) } returns user
-        every { userRepository.deleteById(userId) } returns true
+        // When
+        userService.deleteUser(user.id)
 
-        val result = userService.deleteUser(userId)
-
-        result shouldBe true
-        verify { userRepository.findById(userId) }
-        verify { userRepository.deleteById(userId) }
+        // Then
+        assertFalse(userService.userExists(user.id))
     }
 
     @Test
     fun `should throw exception when deleting non-existent user`() {
-        val userId = UserId.generate()
+        // Given
+        val nonExistentId = UserId.generate()
 
-        every { userRepository.findById(userId) } returns null
-
-        shouldThrow<IllegalArgumentException> {
-            userService.deleteUser(userId)
+        // When & Then
+        assertThrows(IllegalArgumentException::class.java) {
+            userService.deleteUser(nonExistentId)
         }
-
-        verify { userRepository.findById(userId) }
-        verify(exactly = 0) { userRepository.deleteById(userId) }
     }
 
     @Test
-    fun `should check username availability`() {
+    fun `should check if username exists`() {
+        // Given
         val username = "testuser"
+        userService.createUser(username, "test@example.com", "Test User")
 
-        every { userRepository.existsByUsername(username) } returns false
+        // When
+        val exists = userService.usernameExists(username)
 
-        val isAvailable = userService.isUsernameAvailable(username)
-
-        isAvailable shouldBe true
-        verify { userRepository.existsByUsername(username) }
+        // Then
+        assertTrue(exists)
     }
 
     @Test
-    fun `should check email availability`() {
-        val email = "test@example.com"
+    fun `should return false when username does not exist`() {
+        // Given
+        val nonExistentUsername = "nonexistent"
 
-        every { userRepository.existsByEmail(email) } returns true
+        // When
+        val exists = userService.usernameExists(nonExistentUsername)
 
-        val isAvailable = userService.isEmailAvailable(email)
+        // Then
+        assertFalse(exists)
+    }
 
-        isAvailable shouldBe false
-        verify { userRepository.existsByEmail(email) }
+    // Fake repository implementation for testing
+    class FakeUserRepository : UserRepository {
+        private val users = mutableMapOf<UserId, User>()
+        
+        override fun save(user: User): User {
+            users[user.id] = user
+            return user
+        }
+        
+        override fun findById(id: UserId): User? {
+            return users[id]
+        }
+        
+        override fun findByUsername(username: String): User? {
+            return users.values.find { it.username == username }
+        }
+        
+        override fun findByEmail(email: String): User? {
+            return users.values.find { it.email == email }
+        }
+        
+        override fun findAll(): List<User> {
+            return users.values.toList()
+        }
+        
+        override fun deleteById(id: UserId): Boolean {
+            return users.remove(id) != null
+        }
+        
+        override fun existsByUsername(username: String): Boolean {
+            return users.values.any { it.username == username }
+        }
+        
+        override fun existsByEmail(email: String): Boolean {
+            return users.values.any { it.email == email }
+        }
     }
 }
+

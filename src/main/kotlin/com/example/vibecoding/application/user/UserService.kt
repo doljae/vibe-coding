@@ -7,14 +7,27 @@ import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 
 /**
- * Application service for User domain operations
+ * Interface for User service operations
+ */
+interface UserService {
+    fun createUser(username: String, email: String, displayName: String): User
+    fun getUserById(userId: UserId): User
+    fun getUserByUsername(username: String): User
+    fun updateUser(userId: UserId, displayName: String, bio: String?): User
+    fun deleteUser(userId: UserId)
+    fun userExists(userId: UserId): Boolean
+    fun usernameExists(username: String): Boolean
+}
+
+/**
+ * Implementation of UserService
  */
 @Service
-class UserService(
+class UserServiceImpl(
     private val userRepository: UserRepository
-) {
+) : UserService {
 
-    fun createUser(username: String, email: String, displayName: String, bio: String? = null): User {
+    override fun createUser(username: String, email: String, displayName: String): User {
         if (userRepository.existsByUsername(username)) {
             throw IllegalArgumentException("Username '$username' already exists")
         }
@@ -29,7 +42,7 @@ class UserService(
             username = username,
             email = email,
             displayName = displayName,
-            bio = bio,
+            bio = null,
             createdAt = now,
             updatedAt = now
         )
@@ -37,14 +50,39 @@ class UserService(
         return userRepository.save(user)
     }
 
-    fun getUserById(id: UserId): User {
-        return userRepository.findById(id)
-            ?: throw IllegalArgumentException("User with id '$id' not found")
+    override fun getUserById(userId: UserId): User {
+        return userRepository.findById(userId)
+            ?: throw IllegalArgumentException("User with id '$userId' not found")
     }
 
-    fun getUserByUsername(username: String): User {
+    override fun getUserByUsername(username: String): User {
         return userRepository.findByUsername(username)
             ?: throw IllegalArgumentException("User with username '$username' not found")
+    }
+
+    override fun updateUser(userId: UserId, displayName: String, bio: String?): User {
+        val user = getUserById(userId)
+        val updatedUser = user.copy(
+            displayName = displayName,
+            bio = bio,
+            updatedAt = LocalDateTime.now()
+        )
+        return userRepository.save(updatedUser)
+    }
+
+    override fun deleteUser(userId: UserId) {
+        if (userRepository.findById(userId) == null) {
+            throw IllegalArgumentException("User with id '$userId' not found")
+        }
+        userRepository.deleteById(userId)
+    }
+
+    override fun userExists(userId: UserId): Boolean {
+        return userRepository.findById(userId) != null
+    }
+
+    override fun usernameExists(username: String): Boolean {
+        return userRepository.existsByUsername(username)
     }
 
     fun getUserByEmail(email: String): User {
@@ -57,15 +95,11 @@ class UserService(
     }
 
     fun updateUserDisplayName(id: UserId, newDisplayName: String): User {
-        val user = getUserById(id)
-        val updatedUser = user.updateDisplayName(newDisplayName)
-        return userRepository.save(updatedUser)
+        return updateUser(id, newDisplayName, getUserById(id).bio)
     }
 
     fun updateUserBio(id: UserId, newBio: String?): User {
-        val user = getUserById(id)
-        val updatedUser = user.updateBio(newBio)
-        return userRepository.save(updatedUser)
+        return updateUser(id, getUserById(id).displayName, newBio)
     }
 
     fun updateUserEmail(id: UserId, newEmail: String): User {
@@ -77,15 +111,11 @@ class UserService(
             throw IllegalArgumentException("Email '$newEmail' is already taken")
         }
         
-        val updatedUser = user.updateEmail(newEmail)
+        val updatedUser = user.copy(
+            email = newEmail,
+            updatedAt = LocalDateTime.now()
+        )
         return userRepository.save(updatedUser)
-    }
-
-    fun deleteUser(id: UserId): Boolean {
-        if (userRepository.findById(id) == null) {
-            throw IllegalArgumentException("User with id '$id' not found")
-        }
-        return userRepository.deleteById(id)
     }
 
     fun isUsernameAvailable(username: String): Boolean {
@@ -96,3 +126,4 @@ class UserService(
         return !userRepository.existsByEmail(email)
     }
 }
+

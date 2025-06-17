@@ -34,6 +34,10 @@ dependencies {
     testImplementation("io.kotest:kotest-runner-junit5:5.8.0")
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("com.ninja-squad:springmockk:4.0.2")
+    testImplementation("org.mockito:mockito-core:4.11.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:4.1.0")
+    testImplementation("net.bytebuddy:byte-buddy:1.14.12")
+    testImplementation("net.bytebuddy:byte-buddy-agent:1.14.12")
 }
 
 tasks.withType<KotlinCompile>().configureEach {
@@ -48,13 +52,11 @@ tasks.withType<Test> {
     
     // ByteBuddy 에이전트 JVM 인자는 필요한 경우에만 주석 해제하여 사용하세요.
     // 현재 프로젝트에서는 이 설정 없이도 테스트가 정상 동작합니다.
-    /*
+    
     jvmArgs = listOf(
         "--add-opens=java.base/java.lang=ALL-UNNAMED",
         "--add-opens=java.base/java.io=ALL-UNNAMED",
         "--add-opens=java.base/java.util=ALL-UNNAMED",
         "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED"
     )
-    */
 }
-

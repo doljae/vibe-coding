@@ -73,8 +73,7 @@ class LikeController(
                 userService.createUser(
                     username = authorName,
                     email = "${authorName.lowercase().replace(" ", "")}@example.com",
-                    displayName = authorName,
-                    bio = null
+                    displayName = authorName
                 )
             }
             
@@ -213,3 +212,4 @@ data class LikeStatusResponse(
 data class LikeCountResponse(
     val count: Long
 )
+

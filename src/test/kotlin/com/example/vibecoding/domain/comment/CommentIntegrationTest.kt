@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
 import java.time.LocalDateTime
 
-class CommentTest {
+class CommentIntegrationTest {
 
     @Test
     fun `should create root comment correctly`() {

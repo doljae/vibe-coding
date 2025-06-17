@@ -3,6 +3,7 @@ package com.example.vibecoding.presentation.controller
 import com.example.vibecoding.application.category.CategoryService
 import com.example.vibecoding.application.post.PostService
 import com.example.vibecoding.application.user.UserService
+import com.example.vibecoding.application.user.UserServiceImpl
 import com.example.vibecoding.domain.category.Category
 import com.example.vibecoding.domain.category.CategoryId
 import com.example.vibecoding.domain.post.Post
@@ -29,6 +30,7 @@ class UserControllerTest {
 
     private lateinit var mockMvc: MockMvc
     private lateinit var userService: UserService
+    private lateinit var userServiceImpl: UserServiceImpl
     private lateinit var postService: PostService
     private lateinit var categoryService: CategoryService
     private lateinit var objectMapper: ObjectMapper
@@ -68,12 +70,13 @@ class UserControllerTest {
     @BeforeEach
     fun setUp() {
         userService = mockk()
+        userServiceImpl = mockk()
         postService = mockk()
         categoryService = mockk()
         objectMapper = ObjectMapper()
         objectMapper.findAndRegisterModules()
         
-        val controller = UserController(userService, postService, categoryService)
+        val controller = UserController(userService, userServiceImpl, postService, categoryService)
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
             .setControllerAdvice(GlobalExceptionHandler())
             .build()
@@ -83,7 +86,7 @@ class UserControllerTest {
     fun `getAllUsers should return list of users`() {
         // Given
         val users = listOf(testUser)
-        every { userService.getAllUsers() } returns users
+        every { userServiceImpl.getAllUsers() } returns users
 
         // When & Then
         mockMvc.perform(get("/api/users"))
@@ -94,13 +97,13 @@ class UserControllerTest {
             .andExpect(jsonPath("$[0].username").value("testuser"))
             .andExpect(jsonPath("$[0].displayName").value("Test User"))
 
-        verify { userService.getAllUsers() }
+        verify { userServiceImpl.getAllUsers() }
     }
 
     @Test
     fun `getAllUsers should return empty list when no users exist`() {
         // Given
-        every { userService.getAllUsers() } returns emptyList()
+        every { userServiceImpl.getAllUsers() } returns emptyList()
 
         // When & Then
         mockMvc.perform(get("/api/users"))
@@ -109,7 +112,7 @@ class UserControllerTest {
             .andExpect(jsonPath("$").isArray)
             .andExpect(jsonPath("$").isEmpty)
 
-        verify { userService.getAllUsers() }
+        verify { userServiceImpl.getAllUsers() }
     }
 
     @Test
@@ -157,10 +160,9 @@ class UserControllerTest {
         val request = CreateUserRequest(
             username = "testuser",
             email = "test@example.com",
-            displayName = "Test User",
-            bio = "Test bio"
+            displayName = "Test User"
         )
-        every { userService.createUser("testuser", "test@example.com", "Test User", "Test bio") } returns testUser
+        every { userService.createUser("testuser", "test@example.com", "Test User") } returns testUser
 
         // When & Then
         mockMvc.perform(
@@ -176,7 +178,7 @@ class UserControllerTest {
             .andExpect(jsonPath("$.displayName").value("Test User"))
             .andExpect(jsonPath("$.bio").value("Test bio"))
 
-        verify { userService.createUser("testuser", "test@example.com", "Test User", "Test bio") }
+        verify { userService.createUser("testuser", "test@example.com", "Test User") }
     }
 
     @Test
@@ -189,7 +191,7 @@ class UserControllerTest {
         )
         
         // Mock service to throw IllegalArgumentException for invalid input
-        every { userService.createUser("ab", "invalid-email", "Test User", null) } throws IllegalArgumentException("Invalid user data")
+        every { userService.createUser("ab", "invalid-email", "Test User") } throws IllegalArgumentException("Invalid user data")
 
         // When & Then
         mockMvc.perform(
@@ -208,7 +210,7 @@ class UserControllerTest {
             email = "test@example.com",
             displayName = "Test User"
         )
-        every { userService.createUser("testuser", "test@example.com", "Test User", null) } throws 
+        every { userService.createUser("testuser", "test@example.com", "Test User") } throws 
             IllegalArgumentException("Username already exists")
 
         // When & Then
@@ -219,7 +221,7 @@ class UserControllerTest {
         )
             .andExpect(status().isBadRequest)
 
-        verify { userService.createUser("testuser", "test@example.com", "Test User", null) }
+        verify { userService.createUser("testuser", "test@example.com", "Test User") }
     }
 
     @Test
@@ -227,19 +229,16 @@ class UserControllerTest {
         // Given
         val request = UpdateUserRequest(
             displayName = "Updated User",
-            email = "updated@example.com",
+            email = null,
             bio = "Updated bio"
         )
         val updatedUser = testUser.copy(
             displayName = "Updated User",
-            email = "updated@example.com",
             bio = "Updated bio"
         )
         
         every { userService.getUserById(testUserId) } returns testUser
-        every { userService.updateUserDisplayName(testUserId, "Updated User") } returns updatedUser
-        every { userService.updateUserEmail(testUserId, "updated@example.com") } returns updatedUser
-        every { userService.updateUserBio(testUserId, "Updated bio") } returns updatedUser
+        every { userService.updateUser(testUserId, "Updated User", "Updated bio") } returns updatedUser
 
         // When & Then
         mockMvc.perform(
@@ -251,12 +250,9 @@ class UserControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.id").value(testUserId.value.toString()))
             .andExpect(jsonPath("$.displayName").value("Updated User"))
-            .andExpect(jsonPath("$.email").value("updated@example.com"))
             .andExpect(jsonPath("$.bio").value("Updated bio"))
 
-        verify { userService.updateUserDisplayName(testUserId, "Updated User") }
-        verify { userService.updateUserEmail(testUserId, "updated@example.com") }
-        verify { userService.updateUserBio(testUserId, "Updated bio") }
+        verify { userService.updateUser(testUserId, "Updated User", "Updated bio") }
     }
 
     @Test
@@ -279,7 +275,7 @@ class UserControllerTest {
     @Test
     fun `deleteUser should delete user successfully`() {
         // Given
-        every { userService.deleteUser(testUserId) } returns true
+        every { userService.deleteUser(testUserId) } returns Unit
 
         // When & Then
         mockMvc.perform(delete("/api/users/${testUserId.value}"))
@@ -353,7 +349,7 @@ class UserControllerTest {
     @Test
     fun `checkUsernameAvailability should return true when available`() {
         // Given
-        every { userService.isUsernameAvailable("newuser") } returns true
+        every { userService.usernameExists("newuser") } returns false
 
         // When & Then
         mockMvc.perform(get("/api/users/check-username").param("username", "newuser"))
@@ -361,13 +357,13 @@ class UserControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.available").value(true))
 
-        verify { userService.isUsernameAvailable("newuser") }
+        verify { userService.usernameExists("newuser") }
     }
 
     @Test
     fun `checkUsernameAvailability should return false when not available`() {
         // Given
-        every { userService.isUsernameAvailable("testuser") } returns false
+        every { userService.usernameExists("testuser") } returns true
 
         // When & Then
         mockMvc.perform(get("/api/users/check-username").param("username", "testuser"))
@@ -375,13 +371,13 @@ class UserControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.available").value(false))
 
-        verify { userService.isUsernameAvailable("testuser") }
+        verify { userService.usernameExists("testuser") }
     }
 
     @Test
     fun `checkEmailAvailability should return true when available`() {
         // Given
-        every { userService.isEmailAvailable("new@example.com") } returns true
+        every { userServiceImpl.isEmailAvailable("new@example.com") } returns true
 
         // When & Then
         mockMvc.perform(get("/api/users/check-email").param("email", "new@example.com"))
@@ -389,13 +385,13 @@ class UserControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.available").value(true))
 
-        verify { userService.isEmailAvailable("new@example.com") }
+        verify { userServiceImpl.isEmailAvailable("new@example.com") }
     }
 
     @Test
     fun `checkEmailAvailability should return false when not available`() {
         // Given
-        every { userService.isEmailAvailable("test@example.com") } returns false
+        every { userServiceImpl.isEmailAvailable("test@example.com") } returns false
 
         // When & Then
         mockMvc.perform(get("/api/users/check-email").param("email", "test@example.com"))
@@ -403,6 +399,7 @@ class UserControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.available").value(false))
 
-        verify { userService.isEmailAvailable("test@example.com") }
+        verify { userServiceImpl.isEmailAvailable("test@example.com") }
     }
 }
+

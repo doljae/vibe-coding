@@ -212,7 +212,7 @@ class InMemoryUserRepositoryTest {
         )
 
         repository.save(user)
-        val updatedUser = user.updateDisplayName("Updated Name")
+        val updatedUser = user.copy(displayName = "Updated Name")
         repository.save(updatedUser)
 
         val foundUser = repository.findById(user.id)
@@ -233,10 +233,10 @@ class InMemoryUserRepositoryTest {
         )
 
         repository.save(user)
-        assertEquals(1, repository.size())
+        assertEquals(1, repository.findAll().size)
 
         repository.clear()
-        assertEquals(0, repository.size())
+        assertEquals(0, repository.findAll().size)
         assertTrue(repository.findAll().isEmpty())
     }
 }

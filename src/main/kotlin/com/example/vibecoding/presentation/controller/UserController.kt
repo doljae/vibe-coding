@@ -3,6 +3,7 @@ package com.example.vibecoding.presentation.controller
 import com.example.vibecoding.application.category.CategoryService
 import com.example.vibecoding.application.post.PostService
 import com.example.vibecoding.application.user.UserService
+import com.example.vibecoding.application.user.UserServiceImpl
 import com.example.vibecoding.domain.user.UserId
 import com.example.vibecoding.presentation.dto.*
 import jakarta.validation.Valid
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/api/users")
 class UserController(
     private val userService: UserService,
+    private val userServiceImpl: UserServiceImpl,
     private val postService: PostService,
     private val categoryService: CategoryService
 ) {
@@ -26,7 +28,7 @@ class UserController(
      */
     @GetMapping
     fun getAllUsers(): ResponseEntity<List<UserSummaryResponse>> {
-        val users = userService.getAllUsers()
+        val users = userServiceImpl.getAllUsers()
         val response = users.map { UserSummaryResponse.from(it) }
         return ResponseEntity.ok(response)
     }
@@ -50,8 +52,7 @@ class UserController(
         val user = userService.createUser(
             username = request.username,
             email = request.email,
-            displayName = request.displayName,
-            bio = request.bio
+            displayName = request.displayName
         )
         val response = UserResponse.from(user)
         return ResponseEntity.status(HttpStatus.CREATED).body(response)
@@ -66,21 +67,15 @@ class UserController(
         @Valid @RequestBody request: UpdateUserRequest
     ): ResponseEntity<UserResponse> {
         val userId = UserId.from(id)
-        var user = userService.getUserById(userId)
+        val user = userService.getUserById(userId)
 
-        request.displayName?.let { newDisplayName ->
-            user = userService.updateUserDisplayName(userId, newDisplayName)
-        }
+        val updatedUser = userService.updateUser(
+            userId = userId,
+            displayName = request.displayName ?: user.displayName,
+            bio = request.bio
+        )
 
-        request.email?.let { newEmail ->
-            user = userService.updateUserEmail(userId, newEmail)
-        }
-
-        request.bio?.let { newBio ->
-            user = userService.updateUserBio(userId, newBio)
-        }
-
-        val response = UserResponse.from(user)
+        val response = UserResponse.from(updatedUser)
         return ResponseEntity.ok(response)
     }
 
@@ -135,7 +130,7 @@ class UserController(
      */
     @GetMapping("/check-username")
     fun checkUsernameAvailability(@RequestParam username: String): ResponseEntity<Map<String, Boolean>> {
-        val isAvailable = userService.isUsernameAvailable(username)
+        val isAvailable = !userService.usernameExists(username)
         return ResponseEntity.ok(mapOf("available" to isAvailable))
     }
 
@@ -144,7 +139,8 @@ class UserController(
      */
     @GetMapping("/check-email")
     fun checkEmailAvailability(@RequestParam email: String): ResponseEntity<Map<String, Boolean>> {
-        val isAvailable = userService.isEmailAvailable(email)
+        val isAvailable = userServiceImpl.isEmailAvailable(email)
         return ResponseEntity.ok(mapOf("available" to isAvailable))
     }
 }
+

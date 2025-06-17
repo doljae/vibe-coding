@@ -143,8 +143,7 @@ class PostController(
                 userService.createUser(
                     username = authorName,
                     email = "${authorName.lowercase().replace(" ", "")}@example.com",
-                    displayName = authorName,
-                    bio = null
+                    displayName = authorName
                 )
             }
             
@@ -370,3 +369,4 @@ class PostController(
         return ResponseEntity.ok(response)
     }
 }
+

@@ -10,18 +10,21 @@ import com.example.vibecoding.domain.user.User
 import com.example.vibecoding.domain.user.UserId
 import com.example.vibecoding.domain.user.UserRepository
 import com.example.vibecoding.domain.category.CategoryId
+import com.example.vibecoding.infrastructure.repository.InMemoryCommentRepository
+import com.example.vibecoding.infrastructure.repository.InMemoryPostRepository
+import com.example.vibecoding.infrastructure.repository.InMemoryUserRepository
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.assertThrows
 import java.time.LocalDateTime
 
-class CommentServiceTest {
+class CommentServiceIntegrationTest {
 
     private lateinit var commentService: CommentServiceImpl
-    private lateinit var commentRepository: FakeCommentRepository
-    private lateinit var postRepository: FakePostRepository
-    private lateinit var userRepository: FakeUserRepository
+    private lateinit var commentRepository: CommentRepository
+    private lateinit var postRepository: PostRepository
+    private lateinit var userRepository: UserRepository
 
     private val userId = UserId.generate()
     private val postId = PostId.generate()
@@ -33,9 +36,9 @@ class CommentServiceTest {
 
     @BeforeEach
     fun setUp() {
-        commentRepository = FakeCommentRepository()
-        postRepository = FakePostRepository()
-        userRepository = FakeUserRepository()
+        commentRepository = InMemoryCommentRepository()
+        postRepository = InMemoryPostRepository()
+        userRepository = InMemoryUserRepository()
         commentService = CommentServiceImpl(commentRepository, postRepository, userRepository)
 
         testUser = User(
@@ -165,7 +168,7 @@ class CommentServiceTest {
     }
 
     @Test
-    fun `should get comment count for post`() {
+    fun `should get comment count for post successfully`() {
         // Given
         val comment1 = Comment.createRootComment(
             id = CommentId.generate(),
@@ -190,7 +193,7 @@ class CommentServiceTest {
     }
 
     @Test
-    fun `should check if comment exists`() {
+    fun `should check if comment exists successfully`() {
         // Given
         val comment = Comment.createRootComment(
             id = commentId,
@@ -259,131 +262,6 @@ class CommentServiceTest {
         assertNotNull(secondCommentWithReplies)
         assertEquals(rootComment2, secondCommentWithReplies!!.comment)
         assertEquals(0, secondCommentWithReplies.replies.size)
-    }
-    
-    // Fake repository implementations for testing
-    
-    class FakeCommentRepository : CommentRepository {
-        private val comments = mutableMapOf<CommentId, Comment>()
-        
-        override fun save(comment: Comment): Comment {
-            comments[comment.id] = comment
-            return comment
-        }
-        
-        override fun findById(id: CommentId): Comment? {
-            return comments[id]
-        }
-        
-        override fun findByPostId(postId: PostId): List<Comment> {
-            return comments.values.filter { it.postId == postId }
-        }
-        
-        override fun findRootCommentsByPostId(postId: PostId): List<Comment> {
-            return comments.values.filter { it.postId == postId && it.isRootComment() }
-        }
-        
-        override fun findRepliesByParentCommentId(parentCommentId: CommentId): List<Comment> {
-            return comments.values.filter { it.parentCommentId == parentCommentId }
-        }
-        
-        override fun countByPostId(postId: PostId): Long {
-            return comments.values.count { it.postId == postId }.toLong()
-        }
-        
-        override fun existsById(id: CommentId): Boolean {
-            return comments.containsKey(id)
-        }
-        
-        override fun deleteById(id: CommentId): Boolean {
-            return comments.remove(id) != null
-        }
-        
-        override fun findAll(): List<Comment> {
-            return comments.values.toList()
-        }
-    }
-    
-    class FakePostRepository : PostRepository {
-        private val posts = mutableMapOf<PostId, Post>()
-        
-        override fun save(post: Post): Post {
-            posts[post.id] = post
-            return post
-        }
-        
-        override fun findById(id: PostId): Post? {
-            return posts[id]
-        }
-        
-        override fun findAll(): List<Post> {
-            return posts.values.toList()
-        }
-        
-        override fun findByCategoryId(categoryId: CategoryId): List<Post> {
-            return posts.values.filter { it.categoryId == categoryId }
-        }
-        
-        override fun findByAuthorId(authorId: UserId): List<Post> {
-            return posts.values.filter { it.authorId == authorId }
-        }
-        
-        override fun findByTitle(title: String): List<Post> {
-            return posts.values.filter { it.title.contains(title, ignoreCase = true) }
-        }
-        
-        override fun delete(id: PostId): Boolean {
-            return posts.remove(id) != null
-        }
-        
-        override fun existsById(id: PostId): Boolean {
-            return posts.containsKey(id)
-        }
-        
-        override fun countByCategoryId(categoryId: CategoryId): Long {
-            return posts.values.count { it.categoryId == categoryId }.toLong()
-        }
-        
-        override fun countByAuthorId(authorId: UserId): Long {
-            return posts.values.count { it.authorId == authorId }.toLong()
-        }
-    }
-    
-    class FakeUserRepository : UserRepository {
-        private val users = mutableMapOf<UserId, User>()
-        
-        override fun save(user: User): User {
-            users[user.id] = user
-            return user
-        }
-        
-        override fun findById(id: UserId): User? {
-            return users[id]
-        }
-        
-        override fun findByUsername(username: String): User? {
-            return users.values.find { it.username == username }
-        }
-        
-        override fun findByEmail(email: String): User? {
-            return users.values.find { it.email == email }
-        }
-        
-        override fun findAll(): List<User> {
-            return users.values.toList()
-        }
-        
-        override fun deleteById(id: UserId): Boolean {
-            return users.remove(id) != null
-        }
-        
-        override fun existsByUsername(username: String): Boolean {
-            return users.values.any { it.username == username }
-        }
-        
-        override fun existsByEmail(email: String): Boolean {
-            return users.values.any { it.email == email }
-        }
     }
 }
 

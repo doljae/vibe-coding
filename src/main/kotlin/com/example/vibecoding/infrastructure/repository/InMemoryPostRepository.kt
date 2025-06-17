@@ -9,11 +9,10 @@ import org.springframework.stereotype.Repository
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * In-memory implementation of PostRepository (Adapter in hexagonal architecture)
+ * In-memory implementation of PostRepository for testing purposes
  */
 @Repository
 class InMemoryPostRepository : PostRepository {
-    
     private val posts = ConcurrentHashMap<PostId, Post>()
 
     override fun save(post: Post): Post {
@@ -26,25 +25,19 @@ class InMemoryPostRepository : PostRepository {
     }
 
     override fun findAll(): List<Post> {
-        return posts.values.sortedByDescending { it.createdAt }
+        return posts.values.toList()
     }
 
     override fun findByCategoryId(categoryId: CategoryId): List<Post> {
-        return posts.values
-            .filter { it.categoryId == categoryId }
-            .sortedByDescending { it.createdAt }
+        return posts.values.filter { it.categoryId == categoryId }
     }
 
     override fun findByAuthorId(authorId: UserId): List<Post> {
-        return posts.values
-            .filter { it.authorId == authorId }
-            .sortedByDescending { it.createdAt }
+        return posts.values.filter { it.authorId == authorId }
     }
 
     override fun findByTitle(title: String): List<Post> {
-        return posts.values
-            .filter { it.title.contains(title, ignoreCase = true) }
-            .sortedByDescending { it.createdAt }
+        return posts.values.filter { it.title.contains(title, ignoreCase = true) }
     }
 
     override fun delete(id: PostId): Boolean {
@@ -63,13 +56,11 @@ class InMemoryPostRepository : PostRepository {
         return posts.values.count { it.authorId == authorId }.toLong()
     }
 
-    // Additional methods for testing
+    /**
+     * Clear all posts (for testing purposes)
+     */
     fun clear() {
         posts.clear()
-    }
-
-    fun size(): Int {
-        return posts.size
     }
 }
 

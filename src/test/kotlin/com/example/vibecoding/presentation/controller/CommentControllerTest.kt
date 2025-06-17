@@ -8,12 +8,12 @@ import com.example.vibecoding.domain.comment.CommentId
 import com.example.vibecoding.domain.post.PostId
 import com.example.vibecoding.domain.user.UserId
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.ninjasquad.springmockk.MockkBean
-import io.mockk.every
-import io.mockk.verify
 import org.junit.jupiter.api.Test
+import org.mockito.Mockito.`when`
+import org.mockito.Mockito.verify
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
+import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
@@ -28,7 +28,7 @@ class CommentControllerTest {
     @Autowired
     private lateinit var objectMapper: ObjectMapper
 
-    @MockkBean
+    @MockBean
     private lateinit var commentService: CommentService
 
     @MockBean
@@ -49,7 +49,7 @@ class CommentControllerTest {
             postId = postId
         )
 
-        every { commentService.getComment(commentId) } returns comment
+        `when`(commentService.getComment(commentId)).thenReturn(comment)
 
         // When & Then
         mockMvc.perform(get("/api/comments/{commentId}", commentId.value.toString()))
@@ -59,34 +59,34 @@ class CommentControllerTest {
             .andExpect(jsonPath("$.authorId").value(userId.value.toString()))
             .andExpect(jsonPath("$.postId").value(postId.value.toString()))
 
-        verify { commentService.getComment(commentId) }
+        verify(commentService).getComment(commentId)
     }
 
     @Test
     fun `should get comment count for post successfully`() {
         // Given
         val expectedCount = 5L
-        every { commentService.getCommentCountForPost(postId) } returns expectedCount
+        `when`(commentService.getCommentCountForPost(postId)).thenReturn(expectedCount)
 
         // When & Then
         mockMvc.perform(get("/api/comments/posts/{postId}/count", postId.value.toString()))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.count").value(expectedCount))
 
-        verify { commentService.getCommentCountForPost(postId) }
+        verify(commentService).getCommentCountForPost(postId)
     }
 
     @Test
     fun `should check if comment exists successfully`() {
         // Given
-        every { commentService.commentExists(commentId) } returns true
+        `when`(commentService.commentExists(commentId)).thenReturn(true)
 
         // When & Then
         mockMvc.perform(get("/api/comments/{commentId}/exists", commentId.value.toString()))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.exists").value(true))
 
-        verify { commentService.commentExists(commentId) }
+        verify(commentService).commentExists(commentId)
     }
 
     @Test
@@ -107,8 +107,8 @@ class CommentControllerTest {
         )
         val commentWithReplies = CommentWithReplies(rootComment, listOf(reply))
 
-        every { commentService.getCommentsForPost(postId) } returns listOf(commentWithReplies)
-        every { commentService.getCommentCountForPost(postId) } returns 2L
+        `when`(commentService.getCommentsForPost(postId)).thenReturn(listOf(commentWithReplies))
+        `when`(commentService.getCommentCountForPost(postId)).thenReturn(2L)
 
         // When & Then
         mockMvc.perform(get("/api/comments/posts/{postId}", postId.value.toString()))
@@ -120,7 +120,8 @@ class CommentControllerTest {
             .andExpect(jsonPath("$.comments[0].replies").isArray)
             .andExpect(jsonPath("$.comments[0].replyCount").value(1))
 
-        verify { commentService.getCommentsForPost(postId) }
-        verify { commentService.getCommentCountForPost(postId) }
+        verify(commentService).getCommentsForPost(postId)
+        verify(commentService).getCommentCountForPost(postId)
     }
 }
+

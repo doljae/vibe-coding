@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * In-memory implementation of CommentRepository for development and testing
+ * In-memory implementation of CommentRepository for testing purposes
  */
 @Repository
 class InMemoryCommentRepository : CommentRepository {
@@ -24,21 +24,15 @@ class InMemoryCommentRepository : CommentRepository {
     }
 
     override fun findByPostId(postId: PostId): List<Comment> {
-        return comments.values
-            .filter { it.postId == postId }
-            .sortedBy { it.createdAt }
+        return comments.values.filter { it.postId == postId }
     }
 
     override fun findRootCommentsByPostId(postId: PostId): List<Comment> {
-        return comments.values
-            .filter { it.postId == postId && it.parentCommentId == null }
-            .sortedBy { it.createdAt }
+        return comments.values.filter { it.postId == postId && it.isRootComment() }
     }
 
     override fun findRepliesByParentCommentId(parentCommentId: CommentId): List<Comment> {
-        return comments.values
-            .filter { it.parentCommentId == parentCommentId }
-            .sortedBy { it.createdAt }
+        return comments.values.filter { it.parentCommentId == parentCommentId }
     }
 
     override fun deleteById(id: CommentId): Boolean {
@@ -50,13 +44,11 @@ class InMemoryCommentRepository : CommentRepository {
     }
 
     override fun countByPostId(postId: PostId): Long {
-        return comments.values
-            .count { it.postId == postId }
-            .toLong()
+        return comments.values.count { it.postId == postId }.toLong()
     }
 
     override fun findAll(): List<Comment> {
-        return comments.values.sortedBy { it.createdAt }
+        return comments.values.toList()
     }
 
     /**
