@@ -52,3 +52,15 @@ logs/
 *.tmp
 *.temp
 
+### JDK 21 specific ###
+.jdks/
+.jpb/
+.run/
+.jpb/jpb-settings.xml
+
+### Kotlin specific ###
+.kotlin/
+*.kotlin_module
+*.kotlin_metadata
+*.kotlin_builtins
+
