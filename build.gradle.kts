@@ -46,12 +46,13 @@ tasks.withType<KotlinCompile>().configureEach {
 tasks.withType<Test> {
     useJUnitPlatform()
     
-    // ByteBuddy 에이전트 JVM 인자는 필요한 경우에만 주석 해제하여 사용하세요.
-    // 현재 프로젝트에서는 이 설정 없이도 테스트가 정상 동작합니다.
+    // Enable ByteBuddy agent JVM arguments for MockK
     jvmArgs = listOf(
+        "-javaagent:${project.rootDir}/agent/mockk-agent.jar",
         "--add-opens=java.base/java.lang=ALL-UNNAMED",
         "--add-opens=java.base/java.io=ALL-UNNAMED",
         "--add-opens=java.base/java.util=ALL-UNNAMED",
         "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED"
     )
 }
+

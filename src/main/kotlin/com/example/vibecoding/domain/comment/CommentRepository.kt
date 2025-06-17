@@ -17,17 +17,17 @@ interface CommentRepository {
     fun findById(id: CommentId): Comment?
 
     /**
-     * Find all comments for a specific post
+     * Find all comments for a post
      */
     fun findByPostId(postId: PostId): List<Comment>
 
     /**
-     * Find all root comments for a specific post (comments without parent)
+     * Find all root comments (not replies) for a post
      */
     fun findRootCommentsByPostId(postId: PostId): List<Comment>
 
     /**
-     * Find all replies to a specific comment
+     * Find all replies to a parent comment
      */
     fun findRepliesByParentCommentId(parentCommentId: CommentId): List<Comment>
 
@@ -37,23 +37,22 @@ interface CommentRepository {
     fun deleteById(id: CommentId): Boolean
 
     /**
-     * Delete all comments for a specific post
-     * @return The number of comments deleted
+     * Delete all comments for a post
      */
     fun deleteByPostId(postId: PostId): Int
 
     /**
-     * Check if a comment exists
+     * Check if a comment exists by its ID
      */
     fun existsById(id: CommentId): Boolean
 
     /**
-     * Count total comments for a specific post
+     * Count comments for a post
      */
     fun countByPostId(postId: PostId): Long
 
     /**
-     * Find all comments (for testing purposes)
+     * Find all comments
      */
     fun findAll(): List<Comment>
 }
