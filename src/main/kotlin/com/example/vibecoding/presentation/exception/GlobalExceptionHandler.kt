@@ -3,6 +3,9 @@ package com.example.vibecoding.presentation.exception
 import com.example.vibecoding.application.category.CategoryAlreadyExistsException
 import com.example.vibecoding.application.category.CategoryHasPostsException
 import com.example.vibecoding.application.category.CategoryNotFoundException
+import com.example.vibecoding.application.comment.CommentNotFoundException
+import com.example.vibecoding.application.comment.UnauthorizedCommentModificationException
+import com.example.vibecoding.application.comment.InvalidCommentReplyException
 import com.example.vibecoding.application.post.ImageAttachmentException
 import com.example.vibecoding.application.post.PostNotFoundException
 import com.example.vibecoding.application.post.UserNotFoundException
@@ -140,6 +143,63 @@ class GlobalExceptionHandler {
     }
 
     /**
+     * Handle Comment not found errors
+     */
+    @ExceptionHandler(CommentNotFoundException::class)
+    fun handleCommentNotFoundException(
+        ex: CommentNotFoundException,
+        request: WebRequest
+    ): ResponseEntity<ErrorResponse> {
+        val response = ErrorResponse(
+            timestamp = LocalDateTime.now(),
+            status = HttpStatus.NOT_FOUND.value(),
+            error = "Not Found",
+            message = ex.message ?: "Comment not found",
+            path = request.getDescription(false).removePrefix("uri=")
+        )
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response)
+    }
+
+    /**
+     * Handle Unauthorized Comment Modification errors
+     */
+    @ExceptionHandler(UnauthorizedCommentModificationException::class)
+    fun handleUnauthorizedCommentModificationException(
+        ex: UnauthorizedCommentModificationException,
+        request: WebRequest
+    ): ResponseEntity<ErrorResponse> {
+        val response = ErrorResponse(
+            timestamp = LocalDateTime.now(),
+            status = HttpStatus.FORBIDDEN.value(),
+            error = "Forbidden",
+            message = ex.message ?: "Not authorized to modify this comment",
+            path = request.getDescription(false).removePrefix("uri=")
+        )
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response)
+    }
+
+    /**
+     * Handle Invalid Comment Reply errors
+     */
+    @ExceptionHandler(InvalidCommentReplyException::class)
+    fun handleInvalidCommentReplyException(
+        ex: InvalidCommentReplyException,
+        request: WebRequest
+    ): ResponseEntity<ErrorResponse> {
+        val response = ErrorResponse(
+            timestamp = LocalDateTime.now(),
+            status = HttpStatus.BAD_REQUEST.value(),
+            error = "Bad Request",
+            message = ex.message ?: "Invalid comment reply",
+            path = request.getDescription(false).removePrefix("uri=")
+        )
+
+        return ResponseEntity.badRequest().body(response)
+    }
+
+    /**
      * Handle Category already exists errors
      */
     @ExceptionHandler(CategoryAlreadyExistsException::class)
@@ -234,4 +294,3 @@ class GlobalExceptionHandler {
         return ResponseEntity.internalServerError().body(response)
     }
 }
-

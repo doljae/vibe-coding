@@ -23,14 +23,15 @@ class PostDeletionTest {
         
         val mockMvc = MockMvcBuilders.standaloneSetup(postController).build()
         val postId = "123e4567-e89b-12d3-a456-426614174000"
+        val postIdObj = PostId.from(postId)
         
-        doNothing().`when`(postService).deletePost(any(PostId::class.java))
+        // Use doNothing() with the exact PostId object instead of any()
+        doNothing().`when`(postService).deletePost(postIdObj)
         
         // When & Then
         mockMvc.perform(delete("/api/posts/$postId"))
             .andExpect(status().isNoContent)
         
-        verify(postService).deletePost(PostId.from(postId))
+        verify(postService).deletePost(postIdObj)
     }
 }
-
