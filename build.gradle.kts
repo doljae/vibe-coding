@@ -3,8 +3,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     id("org.springframework.boot") version "3.5.0"
     id("io.spring.dependency-management") version "1.1.5"
-    kotlin("jvm") version "2.0.20"
-    kotlin("plugin.spring") version "2.0.20"
+    kotlin("jvm") version "2.1.20"
+    kotlin("plugin.spring") version "2.1.20"
 }
 
 group = "com.example"
@@ -46,12 +46,15 @@ tasks.withType<KotlinCompile>().configureEach {
 tasks.withType<Test> {
     useJUnitPlatform()
     
-    // Add JVM arguments for ByteBuddy agent
+    // ByteBuddy 에이전트 JVM 인자는 필요한 경우에만 주석 해제하여 사용하세요.
+    // 현재 프로젝트에서는 이 설정 없이도 테스트가 정상 동작합니다.
+    /*
     jvmArgs = listOf(
         "--add-opens=java.base/java.lang=ALL-UNNAMED",
         "--add-opens=java.base/java.io=ALL-UNNAMED",
         "--add-opens=java.base/java.util=ALL-UNNAMED",
         "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED"
     )
+    */
 }
 

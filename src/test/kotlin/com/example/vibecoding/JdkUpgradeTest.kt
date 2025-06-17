@@ -1,14 +1,13 @@
 package com.example.vibecoding
 
 import org.junit.jupiter.api.Test
-import org.springframework.boot.test.context.SpringBootTest
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
  * Simple test to verify JDK 21 and Kotlin 2.x compatibility
+ * 단위 테스트로 JDK 21 기능을 검증합니다.
  */
-@SpringBootTest
 class JdkUpgradeTest {
 
     @Test

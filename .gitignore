@@ -52,3 +52,9 @@ logs/
 *.tmp
 *.temp
 
+### JDK 21 specific ###
+.jdks/
+.jpb/
+.run/
+.jpb/jpb-settings.xml
+
