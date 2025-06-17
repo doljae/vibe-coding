@@ -87,6 +87,54 @@ class CommentsManager {
         }).join('');
 
         container.innerHTML = `<div class="comments-container">${commentsHtml}</div>`;
+        
+        // Add event listeners for like buttons after rendering
+        this.setupLikeButtonListeners();
+    }
+
+    setupLikeButtonListeners() {
+        // Add event listeners for like buttons
+        const likeButtons = document.querySelectorAll('.like-btn');
+        likeButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                const commentId = button.closest('[data-comment-id]').dataset.commentId;
+                this.toggleLike(commentId);
+            });
+        });
+    }
+
+    async toggleLike(commentId) {
+        const comment = this.comments.find(c => c.id === commentId);
+        if (!comment) return;
+        
+        try {
+            // In a real app, this would call an API endpoint to toggle the like
+            // For now, we'll just update the UI
+            const likeButton = document.querySelector(`[data-comment-id="${commentId}"] .like-btn`);
+            const likeCount = document.querySelector(`[data-comment-id="${commentId}"] .like-count`);
+            
+            if (likeButton.classList.contains('liked')) {
+                likeButton.classList.remove('liked');
+                likeButton.innerHTML = `<i class="far fa-heart"></i> 좋아요`;
+                if (likeCount) {
+                    const count = parseInt(likeCount.textContent) - 1;
+                    likeCount.textContent = count > 0 ? count : 0;
+                }
+            } else {
+                likeButton.classList.add('liked');
+                likeButton.innerHTML = `<i class="fas fa-heart"></i> 좋아요`;
+                if (likeCount) {
+                    likeCount.textContent = parseInt(likeCount.textContent) + 1;
+                }
+            }
+            
+            this.showNotification('좋아요를 토글했습니다!');
+            
+        } catch (error) {
+            console.error('Failed to toggle like:', error);
+            this.showNotification('좋아요 토글에 실패했습니다.', 'error');
+        }
     }
 
     renderComment(comment, replies = []) {
@@ -108,6 +156,11 @@ class CommentsManager {
                         ${this.formatCommentContent(comment.content)}
                     </div>
                     <div class="comment-actions">
+                        <button class="comment-action like-btn">
+                            <i class="far fa-heart"></i>
+                            좋아요
+                        </button>
+                        <span class="like-count">0</span>
                         <button class="comment-action reply-btn" onclick="commentsManager.showReplyForm('${comment.id}')">
                             <i class="fas fa-reply"></i>
                             답글
@@ -155,6 +208,11 @@ class CommentsManager {
                         ${this.formatCommentContent(reply.content)}
                     </div>
                     <div class="comment-actions">
+                        <button class="comment-action like-btn">
+                            <i class="far fa-heart"></i>
+                            좋아요
+                        </button>
+                        <span class="like-count">0</span>
                         ${this.canEditComment(reply) ? `
                             <button class="comment-action edit-btn" onclick="commentsManager.editComment('${reply.id}')">
                                 <i class="fas fa-edit"></i>
@@ -262,17 +320,16 @@ class CommentsManager {
             // Clear form
             contentInput.value = '';
             
-            // Add the new comment to our local array
+            // Add the new comment to our local array and refresh the UI
             if (response) {
-                this.comments.push(response);
-                this.renderComments();
-                this.updateCommentsCount(this.comments.length);
+                // Reload all comments to ensure we have the latest data
+                await this.loadComments();
+                this.showNotification('댓글이 작성되었습니다!');
             } else {
                 // If no response, reload all comments
                 await this.loadComments();
+                this.showNotification('댓글이 작성되었지만 새로고침이 필요합니다.');
             }
-            
-            this.showNotification('댓글이 작성되었습니다!');
             
         } catch (error) {
             console.error('Failed to create comment:', error);
@@ -313,15 +370,8 @@ class CommentsManager {
             // Hide reply form
             this.hideReplyForm();
             
-            // Add the new reply to our local array
-            if (response) {
-                this.comments.push(response);
-                this.renderComments();
-                this.updateCommentsCount(this.comments.length);
-            } else {
-                // If no response, reload all comments
-                await this.loadComments();
-            }
+            // Reload all comments to ensure we have the latest data
+            await this.loadComments();
             
             this.showNotification('답글이 작성되었습니다!');
             
@@ -384,19 +434,10 @@ class CommentsManager {
                 authorId: comment.authorId
             };
 
-            const updatedComment = await api.comments.update(commentId, updateData);
+            await api.comments.update(commentId, updateData);
             
-            // Update the comment in our local array
-            if (updatedComment) {
-                const index = this.comments.findIndex(c => c.id === commentId);
-                if (index !== -1) {
-                    this.comments[index] = updatedComment;
-                    this.renderComments();
-                }
-            } else {
-                // If no response, reload all comments
-                await this.loadComments();
-            }
+            // Reload all comments to ensure we have the latest data
+            await this.loadComments();
             
             this.showNotification('댓글이 수정되었습니다!');
             
@@ -414,23 +455,8 @@ class CommentsManager {
         try {
             await api.comments.delete(commentId, authorId);
             
-            // Remove the comment from our local array
-            const index = this.comments.findIndex(c => c.id === commentId);
-            if (index !== -1) {
-                // If it's a root comment, also remove all replies
-                const comment = this.comments[index];
-                if (!comment.parentCommentId) {
-                    // Remove all replies to this comment
-                    this.comments = this.comments.filter(c => c.parentCommentId !== commentId);
-                }
-                // Remove the comment itself
-                this.comments.splice(index, 1);
-                this.renderComments();
-                this.updateCommentsCount(this.comments.length);
-            } else {
-                // If comment not found in local array, reload all comments
-                await this.loadComments();
-            }
+            // Reload all comments to ensure we have the latest data
+            await this.loadComments();
             
             this.showNotification('댓글이 삭제되었습니다!');
             
@@ -569,6 +595,7 @@ const commentsStyles = `
 .comment-actions {
     display: flex;
     gap: 1rem;
+    align-items: center;
 }
 
 .comment-action {
@@ -593,6 +620,19 @@ const commentsStyles = `
 .comment-action.delete-btn:hover {
     color: #dc2626;
     background-color: #fef2f2;
+}
+
+.like-btn.liked {
+    color: #ef4444;
+}
+
+.like-btn.liked i {
+    color: #ef4444;
+}
+
+.like-count {
+    font-size: 0.875rem;
+    color: #6b7280;
 }
 
 .comment-replies {
