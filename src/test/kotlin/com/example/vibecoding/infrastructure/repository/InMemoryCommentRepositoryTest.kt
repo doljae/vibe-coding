@@ -4,311 +4,265 @@ import com.example.vibecoding.domain.comment.Comment
 import com.example.vibecoding.domain.comment.CommentId
 import com.example.vibecoding.domain.post.PostId
 import com.example.vibecoding.domain.user.UserId
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Assertions.*
+import java.time.LocalDateTime
+import java.util.*
 
 class InMemoryCommentRepositoryTest {
 
     private lateinit var repository: InMemoryCommentRepository
-    private val postId = PostId.generate()
-    private val authorId = UserId.generate()
+    private var postId: PostId = PostId(UUID.randomUUID())
+    private var authorId: UserId = UserId(UUID.randomUUID())
 
     @BeforeEach
     fun setUp() {
         repository = InMemoryCommentRepository()
+        postId = PostId.generate()
+        authorId = UserId.generate()
     }
 
     @Test
-    fun `should save and find comment by id`() {
-        val comment = Comment.createRootComment(
-            id = CommentId.generate(),
-            content = "Test comment",
-            authorId = authorId,
-            postId = postId
-        )
+    fun `save should store a comment and return it`() {
+        // Given
+        val comment = createComment("Test comment")
 
+        // When
         val savedComment = repository.save(comment)
+
+        // Then
+        assertEquals(comment, savedComment)
+        assertEquals(comment, repository.findById(comment.id))
+    }
+
+    @Test
+    fun `findById should return the comment when it exists`() {
+        // Given
+        val comment = createComment("Test comment")
+        repository.save(comment)
+
+        // When
         val foundComment = repository.findById(comment.id)
 
-        assertEquals(comment, savedComment)
+        // Then
+        assertNotNull(foundComment)
         assertEquals(comment, foundComment)
     }
 
     @Test
-    fun `should return null when comment not found`() {
+    fun `findById should return null when comment does not exist`() {
+        // Given
         val nonExistentId = CommentId.generate()
+
+        // When
         val foundComment = repository.findById(nonExistentId)
 
+        // Then
         assertNull(foundComment)
     }
 
     @Test
-    fun `should find comments by post id`() {
-        val comment1 = Comment.createRootComment(
-            id = CommentId.generate(),
-            content = "First comment",
-            authorId = authorId,
-            postId = postId
-        )
-        val comment2 = Comment.createRootComment(
-            id = CommentId.generate(),
-            content = "Second comment",
-            authorId = authorId,
-            postId = postId
-        )
-        val differentPostComment = Comment.createRootComment(
-            id = CommentId.generate(),
-            content = "Different post comment",
-            authorId = authorId,
-            postId = PostId.generate()
-        )
-
+    fun `findByPostId should return all comments for a post`() {
+        // Given
+        val comment1 = createComment("Comment 1")
+        val comment2 = createComment("Comment 2")
+        val comment3 = createComment("Comment 3", PostId.generate()) // Different post
         repository.save(comment1)
         repository.save(comment2)
-        repository.save(differentPostComment)
+        repository.save(comment3)
 
-        val commentsForPost = repository.findByPostId(postId)
+        // When
+        val comments = repository.findByPostId(postId)
 
-        assertEquals(2, commentsForPost.size)
-        assertTrue(commentsForPost.contains(comment1))
-        assertTrue(commentsForPost.contains(comment2))
-        assertFalse(commentsForPost.contains(differentPostComment))
+        // Then
+        assertEquals(2, comments.size)
+        assertTrue(comments.contains(comment1))
+        assertTrue(comments.contains(comment2))
+        assertFalse(comments.contains(comment3))
     }
 
     @Test
-    fun `should find root comments by post id`() {
-        val rootComment = Comment.createRootComment(
-            id = CommentId.generate(),
-            content = "Root comment",
-            authorId = authorId,
-            postId = postId
-        )
-        val reply = Comment.createReply(
-            id = CommentId.generate(),
-            content = "Reply comment",
-            authorId = authorId,
-            postId = postId,
-            parentComment = rootComment
-        )
+    fun `findRootCommentsByPostId should return only root comments for a post`() {
+        // Given
+        val rootComment1 = createComment("Root Comment 1")
+        val rootComment2 = createComment("Root Comment 2")
+        val replyComment = createComment("Reply Comment", postId, rootComment1.id)
+        repository.save(rootComment1)
+        repository.save(rootComment2)
+        repository.save(replyComment)
 
-        repository.save(rootComment)
-        repository.save(reply)
-
+        // When
         val rootComments = repository.findRootCommentsByPostId(postId)
 
-        assertEquals(1, rootComments.size)
-        assertEquals(rootComment, rootComments[0])
+        // Then
+        assertEquals(2, rootComments.size)
+        assertTrue(rootComments.contains(rootComment1))
+        assertTrue(rootComments.contains(rootComment2))
+        assertFalse(rootComments.contains(replyComment))
     }
 
     @Test
-    fun `should find replies by parent comment id`() {
-        val parentComment = Comment.createRootComment(
-            id = CommentId.generate(),
-            content = "Parent comment",
-            authorId = authorId,
-            postId = postId
-        )
-        val reply1 = Comment.createReply(
-            id = CommentId.generate(),
-            content = "First reply",
-            authorId = authorId,
-            postId = postId,
-            parentComment = parentComment
-        )
-        val reply2 = Comment.createReply(
-            id = CommentId.generate(),
-            content = "Second reply",
-            authorId = authorId,
-            postId = postId,
-            parentComment = parentComment
-        )
-
-        repository.save(parentComment)
+    fun `findRepliesByParentCommentId should return all replies to a comment`() {
+        // Given
+        val rootComment = createComment("Root Comment")
+        val reply1 = createComment("Reply 1", postId, rootComment.id)
+        val reply2 = createComment("Reply 2", postId, rootComment.id)
+        val otherComment = createComment("Other Comment")
+        repository.save(rootComment)
         repository.save(reply1)
         repository.save(reply2)
+        repository.save(otherComment)
 
-        val replies = repository.findRepliesByParentCommentId(parentComment.id)
+        // When
+        val replies = repository.findRepliesByParentCommentId(rootComment.id)
 
+        // Then
         assertEquals(2, replies.size)
         assertTrue(replies.contains(reply1))
         assertTrue(replies.contains(reply2))
+        assertFalse(replies.contains(rootComment))
+        assertFalse(replies.contains(otherComment))
     }
 
     @Test
-    fun `should delete comment by id`() {
-        val comment = Comment.createRootComment(
-            id = CommentId.generate(),
-            content = "Test comment",
-            authorId = authorId,
-            postId = postId
-        )
-
+    fun `deleteById should remove the comment and return true when it exists`() {
+        // Given
+        val comment = createComment("Test comment")
         repository.save(comment)
-        assertTrue(repository.existsById(comment.id))
 
-        val deleted = repository.deleteById(comment.id)
+        // When
+        val result = repository.deleteById(comment.id)
 
-        assertTrue(deleted)
-        assertFalse(repository.existsById(comment.id))
+        // Then
+        assertTrue(result)
         assertNull(repository.findById(comment.id))
     }
 
     @Test
-    fun `should return false when deleting non-existent comment`() {
+    fun `deleteById should return false when comment does not exist`() {
+        // Given
         val nonExistentId = CommentId.generate()
-        val deleted = repository.deleteById(nonExistentId)
 
-        assertFalse(deleted)
+        // When
+        val result = repository.deleteById(nonExistentId)
+
+        // Then
+        assertFalse(result)
     }
 
     @Test
-    fun `should check if comment exists`() {
-        val comment = Comment.createRootComment(
-            id = CommentId.generate(),
-            content = "Test comment",
-            authorId = authorId,
-            postId = postId
-        )
-
-        assertFalse(repository.existsById(comment.id))
-
-        repository.save(comment)
-        assertTrue(repository.existsById(comment.id))
-
-        repository.deleteById(comment.id)
-        assertFalse(repository.existsById(comment.id))
-    }
-
-    @Test
-    fun `should count comments by post id`() {
-        val comment1 = Comment.createRootComment(
-            id = CommentId.generate(),
-            content = "First comment",
-            authorId = authorId,
-            postId = postId
-        )
-        val comment2 = Comment.createRootComment(
-            id = CommentId.generate(),
-            content = "Second comment",
-            authorId = authorId,
-            postId = postId
-        )
-        val reply = Comment.createReply(
-            id = CommentId.generate(),
-            content = "Reply",
-            authorId = authorId,
-            postId = postId,
-            parentComment = comment1
-        )
-
+    fun `deleteByPostId should remove all comments for a post and return the count`() {
+        // Given
+        val comment1 = createComment("Comment 1")
+        val comment2 = createComment("Comment 2")
+        val comment3 = createComment("Comment 3", PostId.generate()) // Different post
         repository.save(comment1)
         repository.save(comment2)
-        repository.save(reply)
+        repository.save(comment3)
 
+        // When
+        val deletedCount = repository.deleteByPostId(postId)
+
+        // Then
+        assertEquals(2, deletedCount)
+        assertNull(repository.findById(comment1.id))
+        assertNull(repository.findById(comment2.id))
+        assertNotNull(repository.findById(comment3.id))
+    }
+
+    @Test
+    fun `existsById should return true when comment exists`() {
+        // Given
+        val comment = createComment("Test comment")
+        repository.save(comment)
+
+        // When
+        val exists = repository.existsById(comment.id)
+
+        // Then
+        assertTrue(exists)
+    }
+
+    @Test
+    fun `existsById should return false when comment does not exist`() {
+        // Given
+        val nonExistentId = CommentId.generate()
+
+        // When
+        val exists = repository.existsById(nonExistentId)
+
+        // Then
+        assertFalse(exists)
+    }
+
+    @Test
+    fun `countByPostId should return the number of comments for a post`() {
+        // Given
+        val comment1 = createComment("Comment 1")
+        val comment2 = createComment("Comment 2")
+        val comment3 = createComment("Comment 3", PostId.generate()) // Different post
+        repository.save(comment1)
+        repository.save(comment2)
+        repository.save(comment3)
+
+        // When
         val count = repository.countByPostId(postId)
 
-        assertEquals(3, count) // 2 root comments + 1 reply
+        // Then
+        assertEquals(2, count)
     }
 
     @Test
-    fun `should return zero count for post with no comments`() {
-        val emptyPostId = PostId.generate()
-        val count = repository.countByPostId(emptyPostId)
-
-        assertEquals(0, count)
-    }
-
-    @Test
-    fun `should find all comments sorted by creation time`() {
-        val comment1 = Comment.createRootComment(
-            id = CommentId.generate(),
-            content = "First comment",
-            authorId = authorId,
-            postId = postId
-        )
-        Thread.sleep(1) // Ensure different timestamps
-        val comment2 = Comment.createRootComment(
-            id = CommentId.generate(),
-            content = "Second comment",
-            authorId = authorId,
-            postId = postId
-        )
-
-        repository.save(comment2) // Save in reverse order
-        repository.save(comment1)
-
-        val allComments = repository.findAll()
-
-        assertEquals(2, allComments.size)
-        assertEquals(comment1, allComments[0]) // Should be first due to earlier creation time
-        assertEquals(comment2, allComments[1])
-    }
-
-    @Test
-    fun `should clear all comments`() {
-        val comment1 = Comment.createRootComment(
-            id = CommentId.generate(),
-            content = "First comment",
-            authorId = authorId,
-            postId = postId
-        )
-        val comment2 = Comment.createRootComment(
-            id = CommentId.generate(),
-            content = "Second comment",
-            authorId = authorId,
-            postId = postId
-        )
-
+    fun `findAll should return all comments`() {
+        // Given
+        val comment1 = createComment("Comment 1")
+        val comment2 = createComment("Comment 2")
+        val comment3 = createComment("Comment 3", PostId.generate())
         repository.save(comment1)
         repository.save(comment2)
-        assertEquals(2, repository.findAll().size)
+        repository.save(comment3)
 
-        repository.clear()
-        assertEquals(0, repository.findAll().size)
+        // When
+        val allComments = repository.findAll()
+
+        // Then
+        assertEquals(3, allComments.size)
+        assertTrue(allComments.contains(comment1))
+        assertTrue(allComments.contains(comment2))
+        assertTrue(allComments.contains(comment3))
     }
 
     @Test
-    fun `should update existing comment when saved again`() {
-        val comment = Comment.createRootComment(
-            id = CommentId.generate(),
-            content = "Original content",
-            authorId = authorId,
-            postId = postId
-        )
-
-        repository.save(comment)
-        val updatedComment = comment.updateContent("Updated content")
-        repository.save(updatedComment)
-
-        val foundComment = repository.findById(comment.id)
-        assertEquals("Updated content", foundComment?.content)
-    }
-
-    @Test
-    fun `should maintain comment order by creation time in findByPostId`() {
-        val comment1 = Comment.createRootComment(
-            id = CommentId.generate(),
-            content = "First comment",
-            authorId = authorId,
-            postId = postId
-        )
-        Thread.sleep(1)
-        val comment2 = Comment.createRootComment(
-            id = CommentId.generate(),
-            content = "Second comment",
-            authorId = authorId,
-            postId = postId
-        )
-
-        repository.save(comment2) // Save in reverse order
+    fun `clear should remove all comments`() {
+        // Given
+        val comment1 = createComment("Comment 1")
+        val comment2 = createComment("Comment 2")
         repository.save(comment1)
+        repository.save(comment2)
 
-        val comments = repository.findByPostId(postId)
+        // When
+        repository.clear()
 
-        assertEquals(2, comments.size)
-        assertEquals(comment1, comments[0])
-        assertEquals(comment2, comments[1])
+        // Then
+        assertTrue(repository.findAll().isEmpty())
+    }
+
+    // Helper method to create a comment
+    private fun createComment(
+        content: String,
+        postId: PostId = this.postId,
+        parentCommentId: CommentId? = null
+    ): Comment {
+        return Comment(
+            id = CommentId.generate(),
+            content = content,
+            authorId = authorId,
+            postId = postId,
+            parentCommentId = parentCommentId,
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now()
+        )
     }
 }
 

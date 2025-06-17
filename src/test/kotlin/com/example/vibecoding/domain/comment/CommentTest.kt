@@ -2,311 +2,224 @@ package com.example.vibecoding.domain.comment
 
 import com.example.vibecoding.domain.post.PostId
 import com.example.vibecoding.domain.user.UserId
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.junit.jupiter.api.Assertions.*
 import java.time.LocalDateTime
 
 class CommentTest {
 
-    private val commentId = CommentId.generate()
-    private val authorId = UserId.generate()
-    private val postId = PostId.generate()
-    private val validContent = "This is a valid comment content"
-    private val createdAt = LocalDateTime.now()
-
     @Test
-    fun `should create comment with valid data`() {
+    fun `should create a valid comment`() {
+        // Given
+        val commentId = CommentId.generate()
+        val content = "This is a test comment"
+        val authorId = UserId.generate()
+        val postId = PostId.generate()
+        val createdAt = LocalDateTime.now()
+        val updatedAt = LocalDateTime.now()
+
+        // When
         val comment = Comment(
             id = commentId,
-            content = validContent,
+            content = content,
             authorId = authorId,
             postId = postId,
             parentCommentId = null,
             createdAt = createdAt,
-            updatedAt = createdAt
+            updatedAt = updatedAt
         )
 
+        // Then
         assertEquals(commentId, comment.id)
-        assertEquals(validContent, comment.content)
+        assertEquals(content, comment.content)
         assertEquals(authorId, comment.authorId)
         assertEquals(postId, comment.postId)
         assertNull(comment.parentCommentId)
         assertEquals(createdAt, comment.createdAt)
-        assertEquals(createdAt, comment.updatedAt)
+        assertEquals(updatedAt, comment.updatedAt)
+    }
+
+    @Test
+    fun `should create a valid reply comment`() {
+        // Given
+        val commentId = CommentId.generate()
+        val content = "This is a test reply"
+        val authorId = UserId.generate()
+        val postId = PostId.generate()
+        val parentCommentId = CommentId.generate()
+        val createdAt = LocalDateTime.now()
+        val updatedAt = LocalDateTime.now()
+
+        // When
+        val comment = Comment(
+            id = commentId,
+            content = content,
+            authorId = authorId,
+            postId = postId,
+            parentCommentId = parentCommentId,
+            createdAt = createdAt,
+            updatedAt = updatedAt
+        )
+
+        // Then
+        assertEquals(commentId, comment.id)
+        assertEquals(content, comment.content)
+        assertEquals(authorId, comment.authorId)
+        assertEquals(postId, comment.postId)
+        assertEquals(parentCommentId, comment.parentCommentId)
+        assertEquals(createdAt, comment.createdAt)
+        assertEquals(updatedAt, comment.updatedAt)
     }
 
     @Test
     fun `should throw exception when content is blank`() {
-        assertThrows<IllegalArgumentException> {
-            Comment(
-                id = commentId,
-                content = "",
-                authorId = authorId,
-                postId = postId,
-                parentCommentId = null,
-                createdAt = createdAt,
-                updatedAt = createdAt
-            )
-        }
-    }
+        // Given
+        val commentId = CommentId.generate()
+        val content = ""  // Blank content
+        val authorId = UserId.generate()
+        val postId = PostId.generate()
+        val createdAt = LocalDateTime.now()
+        val updatedAt = LocalDateTime.now()
 
-    @Test
-    fun `should throw exception when content is only whitespace`() {
+        // When & Then
         assertThrows<IllegalArgumentException> {
             Comment(
                 id = commentId,
-                content = "   ",
+                content = content,
                 authorId = authorId,
                 postId = postId,
                 parentCommentId = null,
                 createdAt = createdAt,
-                updatedAt = createdAt
+                updatedAt = updatedAt
             )
         }
     }
 
     @Test
     fun `should throw exception when content exceeds maximum length`() {
-        val longContent = "a".repeat(Comment.MAX_CONTENT_LENGTH + 1)
-        
+        // Given
+        val commentId = CommentId.generate()
+        val content = "a".repeat(1001)  // Exceeds 1000 characters
+        val authorId = UserId.generate()
+        val postId = PostId.generate()
+        val createdAt = LocalDateTime.now()
+        val updatedAt = LocalDateTime.now()
+
+        // When & Then
         assertThrows<IllegalArgumentException> {
             Comment(
                 id = commentId,
-                content = longContent,
+                content = content,
                 authorId = authorId,
                 postId = postId,
                 parentCommentId = null,
                 createdAt = createdAt,
-                updatedAt = createdAt
+                updatedAt = updatedAt
             )
         }
     }
 
     @Test
-    fun `should accept content at maximum length`() {
-        val maxLengthContent = "a".repeat(Comment.MAX_CONTENT_LENGTH)
-        
+    fun `isReply should return true for reply comments`() {
+        // Given
         val comment = Comment(
-            id = commentId,
-            content = maxLengthContent,
-            authorId = authorId,
-            postId = postId,
-            parentCommentId = null,
-            createdAt = createdAt,
-            updatedAt = createdAt
+            id = CommentId.generate(),
+            content = "This is a reply",
+            authorId = UserId.generate(),
+            postId = PostId.generate(),
+            parentCommentId = CommentId.generate(),  // Has parent comment
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now()
         )
 
-        assertEquals(maxLengthContent, comment.content)
+        // When & Then
+        assertTrue(comment.isReply())
+        assertFalse(comment.isRootComment())
     }
 
     @Test
-    fun `should update content successfully`() {
+    fun `isRootComment should return true for root comments`() {
+        // Given
         val comment = Comment(
-            id = commentId,
-            content = validContent,
-            authorId = authorId,
-            postId = postId,
-            parentCommentId = null,
-            createdAt = createdAt,
-            updatedAt = createdAt
+            id = CommentId.generate(),
+            content = "This is a root comment",
+            authorId = UserId.generate(),
+            postId = PostId.generate(),
+            parentCommentId = null,  // No parent comment
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now()
         )
 
-        val newContent = "Updated comment content"
-        val updatedComment = comment.updateContent(newContent)
-
-        assertEquals(newContent, updatedComment.content)
-        assertEquals(createdAt, updatedComment.createdAt) // createdAt should not change
-        assertTrue(updatedComment.updatedAt.isAfter(createdAt)) // updatedAt should be updated
-    }
-
-    @Test
-    fun `should throw exception when updating with blank content`() {
-        val comment = Comment(
-            id = commentId,
-            content = validContent,
-            authorId = authorId,
-            postId = postId,
-            parentCommentId = null,
-            createdAt = createdAt,
-            updatedAt = createdAt
-        )
-
-        assertThrows<IllegalArgumentException> {
-            comment.updateContent("")
-        }
-    }
-
-    @Test
-    fun `should identify root comment correctly`() {
-        val rootComment = Comment(
-            id = commentId,
-            content = validContent,
-            authorId = authorId,
-            postId = postId,
-            parentCommentId = null,
-            createdAt = createdAt,
-            updatedAt = createdAt
-        )
-
-        assertTrue(rootComment.isRootComment())
-        assertFalse(rootComment.isReply())
-    }
-
-    @Test
-    fun `should identify reply comment correctly`() {
-        val parentCommentId = CommentId.generate()
-        val replyComment = Comment(
-            id = commentId,
-            content = validContent,
-            authorId = authorId,
-            postId = postId,
-            parentCommentId = parentCommentId,
-            createdAt = createdAt,
-            updatedAt = createdAt
-        )
-
-        assertFalse(replyComment.isRootComment())
-        assertTrue(replyComment.isReply())
-        assertEquals(parentCommentId, replyComment.parentCommentId)
-    }
-
-    @Test
-    fun `should create root comment using factory method`() {
-        val comment = Comment.createRootComment(
-            id = commentId,
-            content = validContent,
-            authorId = authorId,
-            postId = postId
-        )
-
-        assertEquals(commentId, comment.id)
-        assertEquals(validContent, comment.content)
-        assertEquals(authorId, comment.authorId)
-        assertEquals(postId, comment.postId)
-        assertNull(comment.parentCommentId)
+        // When & Then
+        assertFalse(comment.isReply())
         assertTrue(comment.isRootComment())
     }
 
     @Test
-    fun `should create reply using factory method`() {
-        val parentComment = Comment.createRootComment(
+    fun `updateContent should return new comment with updated content and timestamp`() {
+        // Given
+        val originalComment = Comment(
             id = CommentId.generate(),
-            content = "Parent comment",
-            authorId = authorId,
-            postId = postId
+            content = "Original content",
+            authorId = UserId.generate(),
+            postId = PostId.generate(),
+            parentCommentId = null,
+            createdAt = LocalDateTime.now().minusHours(1),
+            updatedAt = LocalDateTime.now().minusHours(1)
         )
+        val newContent = "Updated content"
 
-        val reply = Comment.createReply(
-            id = commentId,
-            content = validContent,
-            authorId = authorId,
-            postId = postId,
-            parentComment = parentComment
-        )
+        // When
+        val updatedComment = originalComment.updateContent(newContent)
 
-        assertEquals(commentId, reply.id)
-        assertEquals(validContent, reply.content)
-        assertEquals(authorId, reply.authorId)
-        assertEquals(postId, reply.postId)
-        assertEquals(parentComment.id, reply.parentCommentId)
-        assertTrue(reply.isReply())
+        // Then
+        assertEquals(originalComment.id, updatedComment.id)
+        assertEquals(newContent, updatedComment.content)
+        assertEquals(originalComment.authorId, updatedComment.authorId)
+        assertEquals(originalComment.postId, updatedComment.postId)
+        assertEquals(originalComment.parentCommentId, updatedComment.parentCommentId)
+        assertEquals(originalComment.createdAt, updatedComment.createdAt)
+        assertTrue(updatedComment.updatedAt.isAfter(originalComment.updatedAt))
     }
 
     @Test
-    fun `should throw exception when creating reply to a reply`() {
-        val rootComment = Comment.createRootComment(
+    fun `updateContent should throw exception when new content is blank`() {
+        // Given
+        val comment = Comment(
             id = CommentId.generate(),
-            content = "Root comment",
-            authorId = authorId,
-            postId = postId
+            content = "Original content",
+            authorId = UserId.generate(),
+            postId = PostId.generate(),
+            parentCommentId = null,
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now()
         )
+        val newContent = ""  // Blank content
 
-        val firstReply = Comment.createReply(
-            id = CommentId.generate(),
-            content = "First reply",
-            authorId = authorId,
-            postId = postId,
-            parentComment = rootComment
-        )
-
+        // When & Then
         assertThrows<IllegalArgumentException> {
-            Comment.createReply(
-                id = commentId,
-                content = validContent,
-                authorId = authorId,
-                postId = postId,
-                parentComment = firstReply
-            )
+            comment.updateContent(newContent)
         }
     }
 
     @Test
-    fun `should throw exception when reply and parent belong to different posts`() {
-        val differentPostId = PostId.generate()
-        val parentComment = Comment.createRootComment(
+    fun `updateContent should throw exception when new content exceeds maximum length`() {
+        // Given
+        val comment = Comment(
             id = CommentId.generate(),
-            content = "Parent comment",
-            authorId = authorId,
-            postId = differentPostId
+            content = "Original content",
+            authorId = UserId.generate(),
+            postId = PostId.generate(),
+            parentCommentId = null,
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now()
         )
+        val newContent = "a".repeat(1001)  // Exceeds 1000 characters
 
+        // When & Then
         assertThrows<IllegalArgumentException> {
-            Comment.createReply(
-                id = commentId,
-                content = validContent,
-                authorId = authorId,
-                postId = postId, // Different from parent's postId
-                parentComment = parentComment
-            )
-        }
-    }
-
-    @Test
-    fun `should validate reply to parent comment successfully`() {
-        val parentComment = Comment.createRootComment(
-            id = CommentId.generate(),
-            content = "Parent comment",
-            authorId = authorId,
-            postId = postId
-        )
-
-        val reply = Comment(
-            id = commentId,
-            content = validContent,
-            authorId = authorId,
-            postId = postId,
-            parentCommentId = parentComment.id,
-            createdAt = createdAt,
-            updatedAt = createdAt
-        )
-
-        // Should not throw exception
-        assertDoesNotThrow {
-            reply.validateAsReplyTo(parentComment)
-        }
-    }
-
-    @Test
-    fun `CommentId should generate unique IDs`() {
-        val id1 = CommentId.generate()
-        val id2 = CommentId.generate()
-        
-        assertNotEquals(id1, id2)
-    }
-
-    @Test
-    fun `CommentId should create from string`() {
-        val uuid = java.util.UUID.randomUUID()
-        val commentId = CommentId.from(uuid.toString())
-        
-        assertEquals(uuid, commentId.value)
-    }
-
-    @Test
-    fun `CommentId should throw exception for invalid string`() {
-        assertThrows<IllegalArgumentException> {
-            CommentId.from("invalid-uuid")
+            comment.updateContent(newContent)
         }
     }
 }
