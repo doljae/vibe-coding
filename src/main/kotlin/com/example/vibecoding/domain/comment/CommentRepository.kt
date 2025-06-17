@@ -37,6 +37,12 @@ interface CommentRepository {
     fun deleteById(id: CommentId): Boolean
 
     /**
+     * Delete all comments for a specific post
+     * @return The number of comments deleted
+     */
+    fun deleteByPostId(postId: PostId): Int
+
+    /**
      * Check if a comment exists
      */
     fun existsById(id: CommentId): Boolean

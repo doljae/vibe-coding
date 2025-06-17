@@ -5,6 +5,7 @@ import com.example.vibecoding.domain.category.CategoryRepository
 import com.example.vibecoding.domain.post.*
 import com.example.vibecoding.domain.user.UserId
 import com.example.vibecoding.domain.user.UserRepository
+import com.example.vibecoding.domain.comment.CommentRepository
 import org.springframework.stereotype.Service
 import java.io.InputStream
 import java.time.LocalDateTime
@@ -18,7 +19,8 @@ class PostService(
     private val categoryRepository: CategoryRepository,
     private val userRepository: UserRepository,
     private val imageStorageService: ImageStorageService,
-    private val likeRepository: LikeRepository
+    private val likeRepository: LikeRepository,
+    private val commentRepository: CommentRepository
 ) {
 
     fun createPost(title: String, content: String, authorId: UserId, categoryId: CategoryId): Post {
@@ -206,7 +208,18 @@ class PostService(
             throw PostNotFoundException("Post with id '$id' not found")
         }
 
-        postRepository.delete(id)
+        // Delete all associated likes
+        val deletedLikesCount = likeRepository.deleteByPostId(id)
+        
+        // Delete all associated comments
+        val deletedCommentsCount = commentRepository.deleteByPostId(id)
+        
+        // Delete the post itself
+        val result = postRepository.delete(id)
+        
+        if (!result) {
+            throw RuntimeException("Failed to delete post with id '$id'")
+        }
     }
 
     fun getPostCountByCategory(categoryId: CategoryId): Long {

@@ -79,59 +79,74 @@ class LikesManager {
         likeBtn.classList.add('loading');
 
         try {
+            // Get current like status before toggling
+            const statusResponse = await api.likes.getStatus(postId, this.currentAuthorName);
+            const currentlyLiked = statusResponse.hasLiked;
+            
+            // Toggle like
             const response = await api.likes.toggle(postId, this.currentAuthorName);
             const isLiked = response.isLiked;
+            
+            // Verify the toggle was successful by comparing previous and current state
+            if (isLiked === currentlyLiked) {
+                console.error('Like toggle failed: state did not change');
+                throw new Error('Like toggle failed');
+            }
 
             // Get updated like count
             const countResponse = await api.likes.getCount(postId);
             const likeCount = countResponse.count;
 
+            // Update UI
             this.updateLikeButton(likeBtn, isLiked, likeCount);
             
             // Show feedback
-            if (isLiked) {
-                this.showLikeFeedback('좋아요를 눌렀습니다! ❤️');
-            } else {
-                this.showLikeFeedback('좋아요를 취소했습니다.');
-            }
-
+            const message = isLiked ? '좋아요를 눌렀습니다!' : '좋아요를 취소했습니다!';
+            this.showNotification(message);
+            
         } catch (error) {
             console.error('Failed to toggle like:', error);
-            this.showLikeFeedback('좋아요 처리에 실패했습니다.', 'error');
+            this.showNotification('좋아요 처리에 실패했습니다.', 'error');
+            
+            // Reload like status to ensure UI is consistent
+            try {
+                const statusResponse = await api.likes.getStatus(postId, this.currentAuthorName);
+                const countResponse = await api.likes.getCount(postId);
+                this.updateLikeButton(likeBtn, statusResponse.hasLiked, countResponse.count);
+            } catch (e) {
+                console.error('Failed to reload like status:', e);
+            }
         } finally {
+            // Re-enable button
             likeBtn.disabled = false;
             likeBtn.classList.remove('loading');
         }
     }
 
-    updateLikeButton(likeBtn, isLiked, likeCount) {
-        const icon = likeBtn.querySelector('i');
-        const countSpan = likeBtn.querySelector('#like-count');
-
+    updateLikeButton(button, isLiked, count) {
+        const icon = button.querySelector('i');
+        const countSpan = button.querySelector('.like-count');
+        
         if (isLiked) {
-            likeBtn.classList.add('liked');
-            if (icon) {
-                icon.className = 'fas fa-heart';
-            }
+            button.classList.add('liked');
+            if (icon) icon.className = 'fas fa-heart';
         } else {
-            likeBtn.classList.remove('liked');
-            if (icon) {
-                icon.className = 'far fa-heart';
-            }
+            button.classList.remove('liked');
+            if (icon) icon.className = 'far fa-heart';
         }
-
+        
         if (countSpan) {
-            countSpan.textContent = likeCount;
+            countSpan.textContent = count;
+            
+            // Add animation to count when it changes
+            countSpan.classList.add('count-updated');
+            setTimeout(() => {
+                countSpan.classList.remove('count-updated');
+            }, 500);
         }
-
-        // Add animation class
-        likeBtn.classList.add('like-animation');
-        setTimeout(() => {
-            likeBtn.classList.remove('like-animation');
-        }, 300);
     }
 
-    showLikeFeedback(message, type = 'success') {
+    showNotification(message, type = 'success') {
         // Create feedback element
         const feedback = document.createElement('div');
         feedback.className = `like-feedback ${type}`;

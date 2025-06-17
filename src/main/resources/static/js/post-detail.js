@@ -225,22 +225,111 @@ class PostDetailPage {
     }
 
     async deletePost() {
-        if (!confirm('정말로 이 게시글을 삭제하시겠습니까?')) {
-            return;
+        // Create a confirmation modal instead of using confirm
+        const confirmModal = document.createElement('div');
+        confirmModal.className = 'modal';
+        confirmModal.id = 'delete-post-modal';
+        confirmModal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>게시글 삭제</h3>
+                    <button class="modal-close" id="close-delete-modal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>정말로 이 게시글을 삭제하시겠습니까?</p>
+                    <p class="warning">이 작업은 되돌릴 수 없으며, 모든 댓글도 함께 삭제됩니다.</p>
+                    <div class="modal-actions">
+                        <button id="cancel-delete" class="btn btn-secondary">취소</button>
+                        <button id="confirm-delete" class="btn btn-danger">삭제</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(confirmModal);
+        document.body.style.overflow = 'hidden';
+        
+        // Set up event listeners
+        const closeBtn = document.getElementById('close-delete-modal');
+        const cancelBtn = document.getElementById('cancel-delete');
+        const confirmBtn = document.getElementById('confirm-delete');
+        
+        const closeModal = () => {
+            document.body.removeChild(confirmModal);
+            document.body.style.overflow = 'auto';
+        };
+        
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeModal);
         }
-
-        try {
-            await api.posts.delete(this.postId);
-            this.showNotification('게시글이 삭제되었습니다.');
-            
-            // Redirect to posts list after a short delay
-            setTimeout(() => {
-                utils.navigateTo('/posts.html');
-            }, 1500);
-            
-        } catch (error) {
-            console.error('Failed to delete post:', error);
-            this.showNotification('게시글 삭제에 실패했습니다.');
+        
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', closeModal);
+        }
+        
+        // Click outside modal to close
+        confirmModal.addEventListener('click', (e) => {
+            if (e.target === confirmModal) {
+                closeModal();
+            }
+        });
+        
+        // Escape key to close modal
+        const escapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+                document.removeEventListener('keydown', escapeHandler);
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
+        
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', async () => {
+                try {
+                    // Disable the button and show loading state
+                    confirmBtn.disabled = true;
+                    confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 삭제 중...';
+                    
+                    await api.posts.delete(this.postId);
+                    
+                    closeModal();
+                    this.showNotification('게시글이 삭제되었습니다.');
+                    
+                    // Show a success message with countdown
+                    const redirectMessage = document.createElement('div');
+                    redirectMessage.className = 'redirect-message';
+                    redirectMessage.innerHTML = `
+                        <div class="redirect-content">
+                            <i class="fas fa-check-circle"></i>
+                            <p>게시글이 성공적으로 삭제되었습니다.</p>
+                            <p>5초 후 게시글 목록으로 이동합니다...</p>
+                        </div>
+                    `;
+                    document.body.appendChild(redirectMessage);
+                    
+                    // Countdown and redirect
+                    let countdown = 5;
+                    const countdownInterval = setInterval(() => {
+                        countdown--;
+                        const countdownText = redirectMessage.querySelector('p:last-child');
+                        if (countdownText) {
+                            countdownText.textContent = `${countdown}초 후 게시글 목록으로 이동합니다...`;
+                        }
+                        
+                        if (countdown <= 0) {
+                            clearInterval(countdownInterval);
+                            utils.navigateTo('/posts.html');
+                        }
+                    }, 1000);
+                    
+                } catch (error) {
+                    console.error('Failed to delete post:', error);
+                    closeModal();
+                    this.showNotification('게시글 삭제에 실패했습니다.', 'error');
+                }
+            });
         }
     }
 
@@ -444,34 +533,27 @@ const additionalStyles = `
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
-    align-items: center;
     justify-content: center;
+    align-items: center;
     z-index: 1000;
 }
 
 .modal-content {
     background: white;
-    border-radius: 0.75rem;
-    max-width: 500px;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
     width: 90%;
-    max-height: 90%;
-    overflow: hidden;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-}
-
-.modal-content.modal-image {
-    max-width: 90%;
-    max-height: 90%;
+    max-width: 500px;
 }
 
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.5rem;
-    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 1rem;
 }
 
 .modal-header h3 {
@@ -486,90 +568,105 @@ const additionalStyles = `
     border: none;
     color: #6b7280;
     cursor: pointer;
+    font-size: 1.25rem;
     padding: 0.5rem;
     border-radius: 0.25rem;
     transition: all 0.2s;
 }
 
 .modal-close:hover {
-    background-color: #f3f4f6;
     color: #374151;
 }
 
 .modal-body {
-    padding: 1.5rem;
+    margin-bottom: 1rem;
 }
 
-.modal-image-content {
-    width: 100%;
-    height: auto;
-    max-height: 70vh;
-    object-fit: contain;
+.modal-body p {
+    margin-bottom: 1rem;
+    color: #4b5563;
 }
 
-.notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: #059669;
-    color: white;
-    padding: 1rem 1.5rem;
-    border-radius: 0.5rem;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    transform: translateX(100%);
-    transition: transform 0.3s ease;
-    z-index: 1001;
+.modal-body p.warning {
+    color: #dc2626;
+    font-weight: 500;
+}
+
+.modal-actions {
     display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.btn-secondary {
+    background: #e5e7eb;
+    color: #4b5563;
+}
+
+.btn-secondary:hover {
+    background: #d1d5db;
+}
+
+.btn-danger {
+    background: #dc2626;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #b91c1c;
+}
+
+.btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.redirect-message {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    justify-content: center;
     align-items: center;
-    gap: 0.5rem;
+    z-index: 2000;
 }
 
-.notification.show {
-    transform: translateX(0);
+.redirect-content {
+    text-align: center;
+    padding: 2rem;
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-@media (max-width: 768px) {
-    .post-title {
-        font-size: 1.5rem;
-    }
-    
-    .post-header,
-    .post-content {
-        padding: 1.5rem;
-    }
-    
-    .post-footer {
-        padding: 1rem 1.5rem;
-        flex-direction: column;
-        gap: 1rem;
-        align-items: stretch;
-    }
-    
-    .post-actions {
-        justify-content: center;
-    }
-    
-    .post-management {
-        justify-content: center;
-    }
-    
-    .post-meta {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-    
-    .image-gallery {
-        grid-template-columns: 1fr;
-    }
-    
-    .modal-content {
-        width: 95%;
-        margin: 1rem;
-    }
-    
-    .modal-body {
-        padding: 1rem;
-    }
+.redirect-content i {
+    font-size: 3rem;
+    color: #10b981;
+    margin-bottom: 1rem;
+}
+
+.redirect-content p {
+    margin: 0.5rem 0;
+    color: #4b5563;
+}
+
+.redirect-content p:first-of-type {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
 }
 </style>
 `;

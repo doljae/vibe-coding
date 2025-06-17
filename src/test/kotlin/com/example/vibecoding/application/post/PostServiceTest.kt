@@ -7,6 +7,9 @@ import com.example.vibecoding.domain.post.*
 import com.example.vibecoding.domain.user.User
 import com.example.vibecoding.domain.user.UserId
 import com.example.vibecoding.domain.user.UserRepository
+import com.example.vibecoding.domain.comment.Comment
+import com.example.vibecoding.domain.comment.CommentId
+import com.example.vibecoding.domain.comment.CommentRepository
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -23,6 +26,7 @@ class PostServiceTest {
     private lateinit var userRepository: UserRepository
     private lateinit var imageStorageService: ImageStorageService
     private lateinit var likeRepository: LikeRepository
+    private lateinit var commentRepository: CommentRepository
     private lateinit var postService: PostService
 
     private lateinit var testUser: User
@@ -35,8 +39,9 @@ class PostServiceTest {
         userRepository = mockk()
         imageStorageService = mockk()
         likeRepository = mockk()
+        commentRepository = mockk()
         
-        postService = PostService(postRepository, categoryRepository, userRepository, imageStorageService, likeRepository)
+        postService = PostService(postRepository, categoryRepository, userRepository, imageStorageService, likeRepository, commentRepository)
 
         testUser = User(
             id = UserId.generate(),
@@ -345,6 +350,37 @@ class PostServiceTest {
         }
         
         verify { postRepository.existsById(postId) }
+    }
+
+    @Test
+    fun `should delete post and associated data successfully`() {
+        // Given
+        val postId = PostId.generate()
+        val commentRepository = mockk<CommentRepository>()
+        
+        // Create a PostService with the additional commentRepository
+        val enhancedPostService = PostService(
+            postRepository, 
+            categoryRepository, 
+            userRepository, 
+            imageStorageService, 
+            likeRepository,
+            commentRepository
+        )
+        
+        every { postRepository.existsById(postId) } returns true
+        every { postRepository.delete(postId) } returns true
+        every { likeRepository.deleteByPostId(postId) } returns 5 // 5 likes deleted
+        every { commentRepository.deleteByPostId(postId) } returns 3 // 3 comments deleted
+
+        // When
+        enhancedPostService.deletePost(postId)
+
+        // Then
+        verify { postRepository.existsById(postId) }
+        verify { likeRepository.deleteByPostId(postId) }
+        verify { commentRepository.deleteByPostId(postId) }
+        verify { postRepository.delete(postId) }
     }
 
     @Test

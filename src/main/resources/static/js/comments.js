@@ -243,7 +243,7 @@ class CommentsManager {
         const content = contentInput.value.trim();
         
         if (!author || !content) {
-            this.showNotification('작성자와 댓글 내용을 모두 입력해주세요.', 'error');
+            this.showNotification('\uc791\uc131\uc790\uc640 \ub313\uae00 \ub0b4\uc6a9\uc744 \ubaa8\ub450 \uc785\ub825\ud574\uc8fc\uc138\uc694.', 'error');
             return;
         }
 
@@ -257,19 +257,29 @@ class CommentsManager {
                 postId: this.postId
             };
 
-            await api.comments.create(commentData);
+            // Create the comment
+            const newComment = await api.comments.create(commentData);
             
             // Clear form
             contentInput.value = '';
             
-            // Reload comments
-            await this.loadComments();
-            
-            this.showNotification('댓글이 작성되었습니다!');
-            
+            // Add the new comment to the comments array
+            if (newComment) {
+                this.comments.push(newComment);
+                
+                // Re-render the comments without reloading from server
+                this.renderComments();
+                this.updateCommentsCount(this.comments.length);
+                
+                this.showNotification('\ub313\uae00\uc774 \uc791\uc131\ub418\uc5c8\uc2b5\ub2c8\ub2e4!');
+            } else {
+                // If the API didn't return the new comment, reload all comments
+                await this.loadComments();
+                this.showNotification('\ub313\uae00\uc774 \uc791\uc131\ub418\uc5c8\uc2b5\ub2c8\ub2e4!');
+            }
         } catch (error) {
             console.error('Failed to create comment:', error);
-            this.showNotification('댓글 작성에 실패했습니다.', 'error');
+            this.showNotification('\ub313\uae00 \uc791\uc131\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.', 'error');
         }
     }
 
@@ -286,7 +296,7 @@ class CommentsManager {
         const content = contentInput.value.trim();
         
         if (!author || !content) {
-            this.showNotification('작성자와 답글 내용을 모두 입력해주세요.', 'error');
+            this.showNotification('\uc791\uc131\uc790\uc640 \ub2f5\uae00 \ub0b4\uc6a9\uc744 \ubaa8\ub450 \uc785\ub825\ud574\uc8fc\uc138\uc694.', 'error');
             return;
         }
 
@@ -301,19 +311,29 @@ class CommentsManager {
                 parentCommentId: parentId
             };
 
-            await api.comments.createReply(replyData);
+            // Create the reply
+            const newReply = await api.comments.createReply(replyData);
             
             // Hide reply form
             this.hideReplyForm();
             
-            // Reload comments
-            await this.loadComments();
-            
-            this.showNotification('답글이 작성되었습니다!');
-            
+            if (newReply) {
+                // Add the new reply to the comments array
+                this.comments.push(newReply);
+                
+                // Re-render the comments without reloading from server
+                this.renderComments();
+                this.updateCommentsCount(this.comments.length);
+                
+                this.showNotification('\ub2f5\uae00\uc774 \uc791\uc131\ub418\uc5c8\uc2b5\ub2c8\ub2e4!');
+            } else {
+                // If the API didn't return the new reply, reload all comments
+                await this.loadComments();
+                this.showNotification('\ub2f5\uae00\uc774 \uc791\uc131\ub418\uc5c8\uc2b5\ub2c8\ub2e4!');
+            }
         } catch (error) {
             console.error('Failed to create reply:', error);
-            this.showNotification('답글 작성에 실패했습니다.', 'error');
+            this.showNotification('\ub2f5\uae00 \uc791\uc131\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.', 'error');
         }
     }
 
@@ -361,44 +381,168 @@ class CommentsManager {
         const comment = this.comments.find(c => c.id === commentId);
         if (!comment) return;
 
-        const newContent = prompt('댓글을 수정하세요:', comment.content);
-        if (!newContent || newContent.trim() === comment.content) return;
-
-        try {
-            const updateData = {
-                content: newContent.trim(),
-                authorId: comment.authorId
-            };
-
-            await api.comments.update(commentId, updateData);
-            
-            // Reload comments
-            await this.loadComments();
-            
-            this.showNotification('댓글이 수정되었습니다!');
-            
-        } catch (error) {
-            console.error('Failed to update comment:', error);
-            this.showNotification('댓글 수정에 실패했습니다.', 'error');
+        // Create a modal for editing instead of using prompt
+        const editModal = document.createElement('div');
+        editModal.className = 'modal';
+        editModal.id = 'edit-comment-modal';
+        editModal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>댓글 수정</h3>
+                    <button class="modal-close" id="close-edit-modal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-comment-form">
+                        <div class="form-group">
+                            <label for="edit-comment-content">내용</label>
+                            <textarea id="edit-comment-content" class="form-control" rows="4" required>${comment.content}</textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" id="cancel-edit" class="btn btn-secondary">취소</button>
+                            <button type="submit" class="btn btn-primary">수정</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(editModal);
+        document.body.style.overflow = 'hidden';
+        
+        // Focus on the textarea
+        const textarea = document.getElementById('edit-comment-content');
+        if (textarea) {
+            textarea.focus();
+            // Place cursor at the end of the text
+            textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+        }
+        
+        // Set up event listeners
+        const closeBtn = document.getElementById('close-edit-modal');
+        const cancelBtn = document.getElementById('cancel-edit');
+        const form = document.getElementById('edit-comment-form');
+        
+        const closeModal = () => {
+            document.body.removeChild(editModal);
+            document.body.style.overflow = 'auto';
+        };
+        
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeModal);
+        }
+        
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', closeModal);
+        }
+        
+        // Click outside modal to close
+        editModal.addEventListener('click', (e) => {
+            if (e.target === editModal) {
+                closeModal();
+            }
+        });
+        
+        // Escape key to close modal
+        const escapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+                document.removeEventListener('keydown', escapeHandler);
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
+        
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const contentInput = document.getElementById('edit-comment-content');
+                const newContent = contentInput.value.trim();
+                
+                if (!newContent) {
+                    this.showNotification('댓글 내용을 입력해주세요.', 'error');
+                    return;
+                }
+                
+                if (newContent === comment.content) {
+                    closeModal();
+                    return;
+                }
+                
+                try {
+                    const updateData = {
+                        content: newContent,
+                        authorId: comment.authorId
+                    };
+                    
+                    await api.comments.update(commentId, updateData);
+                    
+                    // Update the comment in the local array
+                    const index = this.comments.findIndex(c => c.id === commentId);
+                    if (index !== -1) {
+                        this.comments[index] = { ...this.comments[index], content: newContent };
+                        
+                        // Re-render the comments without reloading from server
+                        this.renderComments();
+                    } else {
+                        // If we can't find the comment locally, reload all comments
+                        await this.loadComments();
+                    }
+                    
+                    closeModal();
+                    this.showNotification('댓글이 수정되었습니다!');
+                } catch (error) {
+                    console.error('Failed to update comment:', error);
+                    this.showNotification('댓글 수정에 실패했습니다.', 'error');
+                }
+            });
         }
     }
 
     async deleteComment(commentId) {
-        if (!confirm('정말로 이 댓글을 삭제하시겠습니까?')) {
+        const comment = this.comments.find(c => c.id === commentId);
+        if (!comment) return;
+        
+        // Check if this comment has replies
+        const hasReplies = comment.isReply === false && 
+            this.comments.some(c => c.parentCommentId === commentId);
+        
+        let confirmMessage = '정말로 이 댓글을 삭제하시겠습니까?';
+        if (hasReplies) {
+            confirmMessage = '이 댓글을 삭제하면 모든 답글도 함께 삭제됩니다. 계속하시겠습니까?';
+        }
+        
+        if (!confirm(confirmMessage)) {
             return;
         }
 
         try {
-            await api.comments.delete(commentId);
+            // Get the authorId from the comment
+            const authorId = comment.authorId;
             
-            // Reload comments
-            await this.loadComments();
+            // Call the API to delete the comment
+            await api.comments.delete(commentId, authorId);
+            
+            // Remove the comment from the local array
+            this.comments = this.comments.filter(c => c.id !== commentId);
+            
+            // If it's a root comment, also remove all replies
+            if (!comment.isReply) {
+                this.comments = this.comments.filter(c => c.parentCommentId !== commentId);
+            }
+            
+            // Re-render the comments without reloading from server
+            this.renderComments();
+            this.updateCommentsCount(this.comments.length);
             
             this.showNotification('댓글이 삭제되었습니다!');
-            
         } catch (error) {
             console.error('Failed to delete comment:', error);
             this.showNotification('댓글 삭제에 실패했습니다.', 'error');
+            
+            // If there's an error, reload all comments to ensure consistency
+            await this.loadComments();
         }
     }
 
@@ -591,6 +735,116 @@ const commentsStyles = `
 
 .notification.error {
     background: #dc2626;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    width: 90%;
+    max-width: 600px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.modal-header .modal-close {
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    font-size: 1.25rem;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s;
+}
+
+.modal-header .modal-close:hover {
+    color: #374151;
+}
+
+.modal-body {
+    margin-bottom: 1rem;
+}
+
+.modal-body form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.modal-body form .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.modal-body form .form-group label {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.modal-body form .form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.25rem;
+    resize: vertical;
+}
+
+.modal-body form .form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.modal-body form .form-actions button {
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s;
+}
+
+.modal-body form .form-actions button.btn-secondary {
+    background: #e5e7eb;
+    color: #6b7280;
+}
+
+.modal-body form .form-actions button.btn-secondary:hover {
+    background: #d1d5db;
+}
+
+.modal-body form .form-actions button.btn-primary {
+    background: #1f2937;
+    color: white;
+}
+
+.modal-body form .form-actions button.btn-primary:hover {
+    background: #151b22;
 }
 
 @media (max-width: 768px) {

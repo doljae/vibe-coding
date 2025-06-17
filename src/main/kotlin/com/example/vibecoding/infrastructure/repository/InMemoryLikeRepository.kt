@@ -56,6 +56,19 @@ class InMemoryLikeRepository : LikeRepository {
         }
     }
 
+    override fun deleteByPostId(postId: PostId): Int {
+        val likesToDelete = likes.values.filter { it.postId == postId }
+        var count = 0
+        
+        likesToDelete.forEach { like ->
+            if (likes.remove(like.id) != null) {
+                count++
+            }
+        }
+        
+        return count
+    }
+
     override fun existsByPostIdAndUserId(postId: PostId, userId: UserId): Boolean {
         return likes.values.any { it.postId == postId && it.userId == userId }
     }
@@ -77,4 +90,3 @@ class InMemoryLikeRepository : LikeRepository {
         return likes.size
     }
 }
-

@@ -45,6 +45,19 @@ class InMemoryCommentRepository : CommentRepository {
         return comments.remove(id) != null
     }
 
+    override fun deleteByPostId(postId: PostId): Int {
+        val commentsToDelete = comments.values.filter { it.postId == postId }
+        var count = 0
+        
+        commentsToDelete.forEach { comment ->
+            if (comments.remove(comment.id) != null) {
+                count++
+            }
+        }
+        
+        return count
+    }
+
     override fun existsById(id: CommentId): Boolean {
         return comments.containsKey(id)
     }
@@ -66,4 +79,3 @@ class InMemoryCommentRepository : CommentRepository {
         comments.clear()
     }
 }
-

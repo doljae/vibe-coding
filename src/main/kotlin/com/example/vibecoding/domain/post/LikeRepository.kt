@@ -13,6 +13,7 @@ interface LikeRepository {
     fun findByPostIdAndUserId(postId: PostId, userId: UserId): Like?
     fun delete(id: LikeId): Boolean
     fun deleteByPostIdAndUserId(postId: PostId, userId: UserId): Boolean
+    fun deleteByPostId(postId: PostId): Int
     fun existsByPostIdAndUserId(postId: PostId, userId: UserId): Boolean
     fun countByPostId(postId: PostId): Long
     fun countByUserId(userId: UserId): Long
