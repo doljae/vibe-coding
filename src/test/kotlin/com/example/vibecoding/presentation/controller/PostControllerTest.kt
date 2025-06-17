@@ -6,7 +6,8 @@ import com.example.vibecoding.application.user.UserService
 import com.example.vibecoding.domain.category.Category
 import com.example.vibecoding.domain.category.CategoryId
 import com.example.vibecoding.domain.post.ImageAttachment
-import com.example.vibecoding.domain.post.ImageAttachmentId
+import com.example.vibecoding.domain.post.ImageId
+import com.example.vibecoding.domain.post.ImageStorageService
 import com.example.vibecoding.domain.post.Post
 import com.example.vibecoding.domain.post.PostId
 import com.example.vibecoding.domain.user.User
@@ -41,7 +42,7 @@ class PostControllerTest {
     private val testUserId = UserId.generate()
     private val testCategoryId = CategoryId.generate()
     private val testPostId = PostId.generate()
-    private val testImageId = ImageAttachmentId.generate()
+    private val testImageId = ImageId.generate()
 
     private lateinit var testUser: User
     private lateinit var testCategory: Category
@@ -94,7 +95,7 @@ class PostControllerTest {
             contentType = "image/jpeg",
             fileSizeBytes = 1024L,
             storagePath = "uploads/test-image.jpg",
-            createdAt = now
+            uploadedAt = now
         )
         
         testPost = Post(
@@ -308,7 +309,7 @@ class PostControllerTest {
             fileSizeBytes = imageFile.size
         )
         
-        every { imageStorageService.createImageUploadRequest(any()) } returns imageUploadRequest
+        every { imageStorageService.createImageUploadRequest(imageFile) } returns imageUploadRequest
         every { postService.attachImageToPost(testPostId, imageUploadRequest) } returns testPost
         every { userService.getUserById(testUserId) } returns testUser
         every { categoryService.getCategoryById(testCategoryId) } returns testCategory
@@ -341,7 +342,7 @@ class PostControllerTest {
             fileSizeBytes = imageFile.size
         )
         
-        every { imageStorageService.createImageUploadRequest(any()) } returns imageUploadRequest
+        every { imageStorageService.createImageUploadRequest(imageFile) } returns imageUploadRequest
         every { postService.attachImageToPost(testPostId, imageUploadRequest) } throws PostNotFoundException("Post not found")
 
         // When & Then
