@@ -7,7 +7,6 @@ import com.example.vibecoding.domain.category.Category
 import com.example.vibecoding.domain.category.CategoryId
 import com.example.vibecoding.domain.post.ImageAttachment
 import com.example.vibecoding.domain.post.ImageId
-import com.example.vibecoding.domain.post.ImageStorageService
 import com.example.vibecoding.domain.post.Post
 import com.example.vibecoding.domain.post.PostId
 import com.example.vibecoding.domain.user.User
@@ -36,7 +35,6 @@ class PostControllerTest {
     private lateinit var postService: PostService
     private lateinit var userService: UserService
     private lateinit var categoryService: CategoryService
-    private lateinit var imageStorageService: ImageStorageService
     private lateinit var objectMapper: ObjectMapper
 
     private val testUserId = UserId.generate()
@@ -54,14 +52,12 @@ class PostControllerTest {
         postService = mockk(relaxed = true)
         userService = mockk(relaxed = true)
         categoryService = mockk(relaxed = true)
-        imageStorageService = mockk(relaxed = true)
         objectMapper = ObjectMapper()
 
         val controller = PostController(
             postService,
             userService,
-            categoryService,
-            imageStorageService
+            categoryService
         )
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
@@ -302,27 +298,31 @@ class PostControllerTest {
             "test image content".toByteArray()
         )
         
-        val imageUploadRequest = ImageUploadRequest(
-            filename = "test-image.jpg",
-            contentType = "image/jpeg",
-            inputStream = ByteArrayInputStream(imageFile.bytes),
-            fileSizeBytes = imageFile.size
-        )
+        // Mock the service to handle the image upload
+        every { 
+            postService.attachImageToPost(
+                eq(testPostId),
+                any()
+            ) 
+        } returns testPost
         
-        every { imageStorageService.createImageUploadRequest(imageFile) } returns imageUploadRequest
-        every { postService.attachImageToPost(testPostId, imageUploadRequest) } returns testPost
         every { userService.getUserById(testUserId) } returns testUser
         every { categoryService.getCategoryById(testCategoryId) } returns testCategory
 
         // When & Then
         mockMvc.perform(multipart("/api/posts/${testPostId.value}/images")
             .file(imageFile))
-            .andExpect(status().isOk)
+            .andExpect(status().isCreated)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.id").value(testPostId.value.toString()))
-            .andExpect(jsonPath("$.imageAttachments[0].id").value(testImageId.value.toString()))
+            .andExpect(jsonPath("$.id").value(testImageId.value.toString()))
 
-        verify { postService.attachImageToPost(testPostId, imageUploadRequest) }
+        // Verify the service was called with the correct post ID
+        verify { 
+            postService.attachImageToPost(
+                eq(testPostId),
+                any()
+            ) 
+        }
     }
 
     @Test
@@ -335,22 +335,26 @@ class PostControllerTest {
             "test image content".toByteArray()
         )
         
-        val imageUploadRequest = ImageUploadRequest(
-            filename = "test-image.jpg",
-            contentType = "image/jpeg",
-            inputStream = ByteArrayInputStream(imageFile.bytes),
-            fileSizeBytes = imageFile.size
-        )
-        
-        every { imageStorageService.createImageUploadRequest(imageFile) } returns imageUploadRequest
-        every { postService.attachImageToPost(testPostId, imageUploadRequest) } throws PostNotFoundException("Post not found")
+        // Mock the service to throw an exception
+        every { 
+            postService.attachImageToPost(
+                eq(testPostId),
+                any()
+            ) 
+        } throws PostNotFoundException("Post not found")
 
         // When & Then
         mockMvc.perform(multipart("/api/posts/${testPostId.value}/images")
             .file(imageFile))
             .andExpect(status().isNotFound)
 
-        verify { postService.attachImageToPost(testPostId, imageUploadRequest) }
+        // Verify the service was called
+        verify { 
+            postService.attachImageToPost(
+                eq(testPostId),
+                any()
+            ) 
+        }
     }
 
     @Test
