@@ -58,3 +58,9 @@ logs/
 .run/
 .jpb/jpb-settings.xml
 
+### Kotlin specific ###
+.kotlin/
+*.kotlin_module
+*.kotlin_metadata
+*.kotlin_builtins
+
