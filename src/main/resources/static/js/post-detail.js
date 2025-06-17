@@ -225,22 +225,32 @@ class PostDetailPage {
     }
 
     async deletePost() {
-        if (!confirm('정말로 이 게시글을 삭제하시겠습니까?')) {
+        if (!confirm('\uc815\ub9d0\ub85c \uc774 \uac8c\uc2dc\uae00\uc744 \uc0ad\uc81c\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?')) {
             return;
         }
 
         try {
+            const container = document.getElementById('post-container');
+            utils.showLoading(container, '\uac8c\uc2dc\uae00\uc744 \uc0ad\uc81c\ud558\ub294 \uc911...');
+            
             await api.posts.delete(this.postId);
-            this.showNotification('게시글이 삭제되었습니다.');
+            
+            this.showNotification('\uac8c\uc2dc\uae00\uc774 \uc0ad\uc81c\ub418\uc5c8\uc2b5\ub2c8\ub2e4!');
             
             // Redirect to posts list after a short delay
             setTimeout(() => {
                 utils.navigateTo('/posts.html');
-            }, 1500);
+            }, 1000);
             
         } catch (error) {
             console.error('Failed to delete post:', error);
-            this.showNotification('게시글 삭제에 실패했습니다.');
+            this.showNotification('\uac8c\uc2dc\uae00 \uc0ad\uc81c\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.', 'error');
+            
+            // Remove loading indicator if there was an error
+            const container = document.getElementById('post-container');
+            if (container) {
+                container.innerHTML = this.post ? this.renderPost() : '<div class="error">Failed to delete post</div>';
+            }
         }
     }
 
@@ -249,28 +259,26 @@ class PostDetailPage {
         utils.showError(container, message);
     }
 
-    showNotification(message) {
-        // Create notification element
+    showNotification(message, type = 'success') {
         const notification = document.createElement('div');
-        notification.className = 'notification';
+        notification.className = `notification ${type}`;
         notification.innerHTML = `
-            <i class="fas fa-info-circle"></i>
+            <i class="fas ${type === 'error' ? 'fa-exclamation-triangle' : 'fa-check-circle'}"></i>
             ${message}
         `;
         
-        // Add to page
         document.body.appendChild(notification);
         
-        // Show notification
         setTimeout(() => {
             notification.classList.add('show');
         }, 100);
         
-        // Hide and remove notification
         setTimeout(() => {
             notification.classList.remove('show');
             setTimeout(() => {
-                document.body.removeChild(notification);
+                if (document.body.contains(notification)) {
+                    document.body.removeChild(notification);
+                }
             }, 300);
         }, 3000);
     }

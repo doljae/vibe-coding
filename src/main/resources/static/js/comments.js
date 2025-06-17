@@ -8,6 +8,9 @@ class CommentsManager {
         this.init();
     }
 
+    /**
+     * Initialize the comments manager
+     */
     init() {
         this.postId = this.getPostIdFromUrl();
         
@@ -17,11 +20,19 @@ class CommentsManager {
         }
     }
 
+    /**
+     * Get the post ID from the URL parameters
+     * @returns {string} The post ID
+     */
     getPostIdFromUrl() {
         const params = utils.getUrlParams();
         return params.id;
     }
 
+    /**
+     * Get the current user ID from storage or generate a new one
+     * @returns {string} The user ID
+     */
     getCurrentUserId() {
         // In a real application, this would come from authentication
         let userId = storage.get('currentUserId');
@@ -32,12 +43,15 @@ class CommentsManager {
         return userId;
     }
 
+    /**
+     * Load comments for the current post
+     */
     async loadComments() {
         const container = document.getElementById('comments-list');
         if (!container) return;
 
         try {
-            utils.showLoading(container, '댓글을 불러오는 중...');
+            utils.showLoading(container, '\ub313\uae00\uc744 \ubd88\ub7ec\uc624\ub294 \uc911...');
             
             const response = await api.comments.getForPost(this.postId);
             
@@ -59,10 +73,13 @@ class CommentsManager {
             
         } catch (error) {
             console.error('Failed to load comments:', error);
-            utils.showError(container, '댓글을 불러오는데 실패했습니다.');
+            utils.showError(container, '\ub313\uae00\uc744 \ubd88\ub7ec\uc624\ub294\ub370 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.');
         }
     }
 
+    /**
+     * Render all comments for the current post
+     */
     renderComments() {
         const container = document.getElementById('comments-list');
         if (!container) return;
@@ -71,7 +88,7 @@ class CommentsManager {
             container.innerHTML = `
                 <div class="empty-comments">
                     <i class="fas fa-comments"></i>
-                    <p>아직 댓글이 없습니다. 첫 번째 댓글을 작성해보세요!</p>
+                    <p>\uc544\uc9c1 \ub313\uae00\uc774 \uc5c6\uc2b5\ub2c8\ub2e4. \uccab \ubc88\uc9f8 \ub313\uae00\uc744 \uc791\uc131\ud574\ubcf4\uc138\uc694!</p>
                 </div>
             `;
             return;
@@ -89,6 +106,12 @@ class CommentsManager {
         container.innerHTML = `<div class="comments-container">${commentsHtml}</div>`;
     }
 
+    /**
+     * Render a single comment with its replies
+     * @param {Object} comment - The comment to render
+     * @param {Array} replies - The replies to the comment
+     * @returns {string} The HTML for the comment and its replies
+     */
     renderComment(comment, replies = []) {
         const repliesHtml = replies.map(reply => this.renderReply(reply)).join('');
         
@@ -110,16 +133,16 @@ class CommentsManager {
                     <div class="comment-actions">
                         <button class="comment-action reply-btn" onclick="commentsManager.showReplyForm('${comment.id}')">
                             <i class="fas fa-reply"></i>
-                            답글
+                            \ub2f5\uae00
                         </button>
                         ${this.canEditComment(comment) ? `
                             <button class="comment-action edit-btn" onclick="commentsManager.editComment('${comment.id}')">
                                 <i class="fas fa-edit"></i>
-                                수정
+                                \uc218\uc815
                             </button>
                             <button class="comment-action delete-btn" onclick="commentsManager.deleteComment('${comment.id}')">
                                 <i class="fas fa-trash"></i>
-                                삭제
+                                \uc0ad\uc81c
                             </button>
                         ` : ''}
                     </div>
@@ -134,6 +157,11 @@ class CommentsManager {
         `;
     }
 
+    /**
+     * Render a reply to a comment
+     * @param {Object} reply - The reply to render
+     * @returns {string} The HTML for the reply
+     */
     renderReply(reply) {
         return `
             <div class="comment-reply" data-comment-id="${reply.id}">
@@ -144,7 +172,7 @@ class CommentsManager {
                             <span class="author-name">${reply.authorName}</span>
                             <span class="reply-indicator">
                                 <i class="fas fa-reply"></i>
-                                답글
+                                \ub2f5\uae00
                             </span>
                         </div>
                         <div class="comment-date">
@@ -158,11 +186,11 @@ class CommentsManager {
                         ${this.canEditComment(reply) ? `
                             <button class="comment-action edit-btn" onclick="commentsManager.editComment('${reply.id}')">
                                 <i class="fas fa-edit"></i>
-                                수정
+                                \uc218\uc815
                             </button>
                             <button class="comment-action delete-btn" onclick="commentsManager.deleteComment('${reply.id}')">
                                 <i class="fas fa-trash"></i>
-                                삭제
+                                \uc0ad\uc81c
                             </button>
                         ` : ''}
                     </div>
@@ -171,10 +199,20 @@ class CommentsManager {
         `;
     }
 
+    /**
+     * Format the comment content for display
+     * @param {string} content - The comment content
+     * @returns {string} The formatted content
+     */
     formatCommentContent(content) {
         return content.replace(/\n/g, '<br>');
     }
 
+    /**
+     * Check if the current user can edit a comment
+     * @param {Object} comment - The comment to check
+     * @returns {boolean} True if the user can edit the comment, false otherwise
+     */
     canEditComment(comment) {
         // In a real application, this would check user permissions
         // For demo purposes, allow editing if author name matches stored name
@@ -182,6 +220,10 @@ class CommentsManager {
         return storedAuthorName && comment.authorName === storedAuthorName;
     }
 
+    /**
+     * Update the comment count display
+     * @param {number} count - The number of comments
+     */
     updateCommentsCount(count) {
         const countElement = document.getElementById('comments-count');
         if (countElement) {
@@ -189,6 +231,9 @@ class CommentsManager {
         }
     }
 
+    /**
+     * Set up event listeners for comment-related actions
+     */
     setupEventListeners() {
         // Comment form submission
         const commentForm = document.getElementById('comment-form');
@@ -232,6 +277,10 @@ class CommentsManager {
         });
     }
 
+    /**
+     * Handle the submission of a new comment
+     * @param {Event} e - The form submission event
+     */
     async handleCommentSubmit(e) {
         e.preventDefault();
         
@@ -243,7 +292,7 @@ class CommentsManager {
         const content = contentInput.value.trim();
         
         if (!author || !content) {
-            this.showNotification('작성자와 댓글 내용을 모두 입력해주세요.', 'error');
+            this.showNotification('\uc791\uc131\uc790\uc640 \ub313\uae00 \ub0b4\uc6a9\uc744 \ubaa8\ub450 \uc785\ub825\ud574\uc8fc\uc138\uc694.', 'error');
             return;
         }
 
@@ -257,22 +306,31 @@ class CommentsManager {
                 postId: this.postId
             };
 
-            await api.comments.create(commentData);
+            // Send API request to create comment
+            const response = await api.comments.create(commentData);
             
             // Clear form
             contentInput.value = '';
             
-            // Reload comments
-            await this.loadComments();
+            // Add the new comment to the comments array
+            this.comments.push(response);
             
-            this.showNotification('댓글이 작성되었습니다!');
+            // Update the UI immediately without reloading all comments
+            this.renderComments();
+            this.updateCommentsCount(this.comments.length);
+            
+            this.showNotification('\ub313\uae00\uc774 \uc791\uc131\ub418\uc5c8\uc2b5\ub2c8\ub2e4!');
             
         } catch (error) {
             console.error('Failed to create comment:', error);
-            this.showNotification('댓글 작성에 실패했습니다.', 'error');
+            this.showNotification('\ub313\uae00 \uc791\uc131\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.', 'error');
         }
     }
 
+    /**
+     * Handle the submission of a reply to a comment
+     * @param {Event} e - The form submission event
+     */
     async handleReplySubmit(e) {
         e.preventDefault();
         
@@ -286,7 +344,7 @@ class CommentsManager {
         const content = contentInput.value.trim();
         
         if (!author || !content) {
-            this.showNotification('작성자와 답글 내용을 모두 입력해주세요.', 'error');
+            this.showNotification('\uc791\uc131\uc790\uc640 \ub2f5\uae00 \ub0b4\uc6a9\uc744 \ubaa8\ub450 \uc785\ub825\ud574\uc8fc\uc138\uc694.', 'error');
             return;
         }
 
@@ -301,22 +359,31 @@ class CommentsManager {
                 parentCommentId: parentId
             };
 
-            await api.comments.createReply(replyData);
+            // Send API request to create reply
+            const response = await api.comments.createReply(replyData);
             
             // Hide reply form
             this.hideReplyForm();
             
-            // Reload comments
-            await this.loadComments();
+            // Add the new reply to the comments array
+            this.comments.push(response);
             
-            this.showNotification('답글이 작성되었습니다!');
+            // Update the UI immediately without reloading all comments
+            this.renderComments();
+            this.updateCommentsCount(this.comments.length);
+            
+            this.showNotification('\ub2f5\uae00\uc774 \uc791\uc131\ub418\uc5c8\uc2b5\ub2c8\ub2e4!');
             
         } catch (error) {
             console.error('Failed to create reply:', error);
-            this.showNotification('답글 작성에 실패했습니다.', 'error');
+            this.showNotification('\ub2f5\uae00 \uc791\uc131\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.', 'error');
         }
     }
 
+    /**
+     * Show the reply form for a specific comment
+     * @param {string} parentCommentId - The ID of the parent comment
+     */
     showReplyForm(parentCommentId) {
         const modal = document.getElementById('reply-modal');
         const parentIdInput = document.getElementById('reply-parent-id');
@@ -349,6 +416,9 @@ class CommentsManager {
         }
     }
 
+    /**
+     * Hide the reply form
+     */
     hideReplyForm() {
         const modal = document.getElementById('reply-modal');
         if (modal) {
@@ -357,11 +427,15 @@ class CommentsManager {
         }
     }
 
+    /**
+     * Edit a comment
+     * @param {string} commentId - The ID of the comment to edit
+     */
     async editComment(commentId) {
         const comment = this.comments.find(c => c.id === commentId);
         if (!comment) return;
 
-        const newContent = prompt('댓글을 수정하세요:', comment.content);
+        const newContent = prompt('\ub313\uae00\uc744 \uc218\uc815\ud558\uc138\uc694:', comment.content);
         if (!newContent || newContent.trim() === comment.content) return;
 
         try {
@@ -370,38 +444,72 @@ class CommentsManager {
                 authorId: comment.authorId
             };
 
-            await api.comments.update(commentId, updateData);
+            // Send API request to update comment
+            const updatedComment = await api.comments.update(commentId, updateData);
             
-            // Reload comments
-            await this.loadComments();
+            // Update the comment in the comments array
+            const index = this.comments.findIndex(c => c.id === commentId);
+            if (index !== -1) {
+                this.comments[index] = updatedComment;
+            }
             
-            this.showNotification('댓글이 수정되었습니다!');
+            // Update the UI immediately without reloading all comments
+            this.renderComments();
+            
+            this.showNotification('\ub313\uae00\uc774 \uc218\uc815\ub418\uc5c8\uc2b5\ub2c8\ub2e4!');
             
         } catch (error) {
             console.error('Failed to update comment:', error);
-            this.showNotification('댓글 수정에 실패했습니다.', 'error');
+            this.showNotification('\ub313\uae00 \uc218\uc815\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.', 'error');
         }
     }
 
+    /**
+     * Delete a comment
+     * @param {string} commentId - The ID of the comment to delete
+     */
     async deleteComment(commentId) {
-        if (!confirm('정말로 이 댓글을 삭제하시겠습니까?')) {
+        if (!confirm('\uc815\ub9d0\ub85c \uc774 \ub313\uae00\uc744 \uc0ad\uc81c\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?')) {
             return;
         }
 
         try {
-            await api.comments.delete(commentId);
+            // Get the comment to be deleted
+            const comment = this.comments.find(c => c.id === commentId);
+            if (!comment) {
+                this.showNotification('\ub313\uae00\uc744 \ucc3e\uc744 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.', 'error');
+                return;
+            }
+
+            // Send API request to delete comment
+            await api.comments.delete(commentId, comment.authorId);
             
-            // Reload comments
-            await this.loadComments();
+            // Remove the comment and its replies from the comments array
+            if (comment.isReply) {
+                // If it's a reply, just remove it
+                this.comments = this.comments.filter(c => c.id !== commentId);
+            } else {
+                // If it's a parent comment, remove it and all its replies
+                this.comments = this.comments.filter(c => c.id !== commentId && c.parentCommentId !== commentId);
+            }
             
-            this.showNotification('댓글이 삭제되었습니다!');
+            // Update the UI immediately without reloading all comments
+            this.renderComments();
+            this.updateCommentsCount(this.comments.length);
+            
+            this.showNotification('\ub313\uae00\uc774 \uc0ad\uc81c\ub418\uc5c8\uc2b5\ub2c8\ub2e4!');
             
         } catch (error) {
             console.error('Failed to delete comment:', error);
-            this.showNotification('댓글 삭제에 실패했습니다.', 'error');
+            this.showNotification('\ub313\uae00 \uc0ad\uc81c\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.', 'error');
         }
     }
 
+    /**
+     * Show a notification message
+     * @param {string} message - The message to show
+     * @param {string} type - The type of notification ('success' or 'error')
+     */
     showNotification(message, type = 'success') {
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;

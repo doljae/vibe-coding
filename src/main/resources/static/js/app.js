@@ -303,7 +303,7 @@ async function loadRecentPosts() {
     if (!container) return;
 
     try {
-        utils.showLoading(container, '최근 게시글을 불러��는 중...');
+        utils.showLoading(container, '최근 게시글을 불러���는 중...');
         
         const posts = await api.posts.getAll();
         
