@@ -22,7 +22,13 @@ data class CreatePostRequest(
     val authorId: String,
     
     @field:NotBlank(message = "Category ID is required")
-    val categoryId: String
+    val categoryId: String,
+    
+    @field:NotBlank(message = "Author name is required")
+    val authorName: String,
+    
+    @field:NotBlank(message = "Category name is required")
+    val category: String
 )
 
 /**
