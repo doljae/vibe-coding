@@ -1,38 +1,43 @@
 package com.example.vibecoding
 
 import org.junit.jupiter.api.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Simple test to verify JDK 21 and Kotlin 2.x compatibility
- * 단위 테스트로 JDK 21 기능을 검증합니다.
+ * Tests for JDK features compatibility
  */
 class JdkUpgradeTest {
 
     @Test
-    fun `verify JDK 21 and Kotlin 2 x features work`() {
-        // Test JDK 21 features - Pattern matching for switch
-        val obj: Any = "Hello, World!"
-        val result = when (obj) {
-            is String -> obj.length
-            is Int -> obj
-            else -> -1
-        }
-        assertEquals(13, result)
+    fun `test string templates`() {
+        val name = "World"
+        val greeting = "Hello, $name!"
         
-        // Test Kotlin 2.x features
+        assertEquals("Hello, World!", greeting)
+    }
+    
+    @Test
+    fun `test collection operations`() {
         val numbers = listOf(1, 2, 3, 4, 5)
-        val sum = numbers.sum()
-        assertEquals(15, sum)
+        val doubled = numbers.map { it * 2 }
         
-        // Test thread creation (compatible with JDK 21)
+        assertEquals(listOf(2, 4, 6, 8, 10), doubled)
+    }
+    
+    @Test
+    fun `test thread creation`() {
+        val executed = AtomicBoolean(false)
+        
+        // Test thread creation (compatible with JDK 17)
         val thread = Thread { 
-            println("Running in a thread")
+            executed.set(true)
         }
         thread.start()
         thread.join()
-        assertTrue(true, "Thread completed successfully")
+        
+        assertTrue(executed.get())
     }
 }
 
