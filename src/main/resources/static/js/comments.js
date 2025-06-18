@@ -102,6 +102,8 @@ class CommentsManager {
                         </div>
                         <div class="comment-date">
                             ${utils.formatRelativeTime(comment.createdAt)}
+                            ${comment.updatedAt > comment.createdAt ? 
+                              `<span class="comment-edited">(수정됨: ${utils.formatRelativeTime(comment.updatedAt)})</span>` : ''}
                         </div>
                     </div>
                     <div class="comment-text">
@@ -149,6 +151,8 @@ class CommentsManager {
                         </div>
                         <div class="comment-date">
                             ${utils.formatRelativeTime(reply.createdAt)}
+                            ${reply.updatedAt > reply.createdAt ? 
+                              `<span class="comment-edited">(수정됨: ${utils.formatRelativeTime(reply.updatedAt)})</span>` : ''}
                         </div>
                     </div>
                     <div class="comment-text">
@@ -243,7 +247,7 @@ class CommentsManager {
         const content = contentInput.value.trim();
         
         if (!author || !content) {
-            this.showNotification('\uc791\uc131\uc790\uc640 \ub313\uae00 \ub0b4\uc6a9\uc744 \ubaa8\ub450 \uc785\ub825\ud574\uc8fc\uc138\uc694.', 'error');
+            this.showNotification('\\uc791\\uc131\\uc790\\uc640 \\ub313\\uae00 \\ub0b4\\uc6a9\\uc744 \\ubaa8\\ub450 \\uc785\\ub825\\ud574\\uc8fc\\uc138\\uc694.', 'error');
             return;
         }
 
@@ -256,6 +260,13 @@ class CommentsManager {
                 authorName: author,
                 postId: this.postId
             };
+
+            // Show loading indicator
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 처리 중...';
+            }
 
             const newComment = await api.comments.create(commentData);
             
@@ -271,11 +282,18 @@ class CommentsManager {
             // Update comment count
             this.updateCommentsCount(this.comments.length);
             
-            this.showNotification('\ub313\uae00\uc774 \uc791\uc131\ub418\uc5c8\uc2b5\ub2c8\ub2e4!');
+            this.showNotification('\\ub313\\uae00\\uc774 \\uc791\\uc131\\ub418\\uc5c8\\uc2b5\\ub2c8\\ub2e4!');
             
         } catch (error) {
             console.error('Failed to create comment:', error);
-            this.showNotification('\ub313\uae00 \uc791\uc131\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.', 'error');
+            this.showNotification('\\ub313\\uae00 \\uc791\\uc131\\uc5d0 \\uc2e4\\ud328\\ud588\\uc2b5\\ub2c8\\ub2e4.', 'error');
+        } finally {
+            // Reset button state
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 댓글 작성';
+            }
         }
     }
 
@@ -287,18 +305,25 @@ class CommentsManager {
         const authorInput = form.querySelector('#reply-author');
         const contentInput = form.querySelector('#reply-content');
         
-        const parentId = parentIdInput.value;
+        const parentId = parentIdInput.value.trim();
         const author = authorInput.value.trim();
         const content = contentInput.value.trim();
         
         if (!author || !content) {
-            this.showNotification('\uc791\uc131\uc790\uc640 \ub2f5\uae00 \ub0b4\uc6a9\uc744 \ubaa8\ub450 \uc785\ub825\ud574\uc8fc\uc138\uc694.', 'error');
+            this.showNotification('작성자와 답글 내용을 모두 입력해주세요.', 'error');
             return;
         }
 
         try {
             // Store author name for future use
             storage.set('authorName', author);
+            
+            // Show loading indicator
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 처리 중...';
+            }
             
             const replyData = {
                 content: content,
@@ -321,11 +346,18 @@ class CommentsManager {
             // Update comment count
             this.updateCommentsCount(this.comments.length);
             
-            this.showNotification('\ub2f5\uae00\uc774 \uc791\uc131\ub418\uc5c8\uc2b5\ub2c8\ub2e4!');
+            this.showNotification('답글이 작성������었습니다!');
             
         } catch (error) {
             console.error('Failed to create reply:', error);
-            this.showNotification('\ub2f5\uae00 \uc791\uc131\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.', 'error');
+            this.showNotification('답글 작성에 실패했습니다.', 'error');
+        } finally {
+            // Reset button state
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 답글 작성';
+            }
         }
     }
 
@@ -373,10 +405,17 @@ class CommentsManager {
         const comment = this.comments.find(c => c.id === commentId);
         if (!comment) return;
 
-        const newContent = prompt('\ub313\uae00\uc744 \uc218\uc815\ud558\uc138\uc694:', comment.content);
+        const newContent = prompt('댓글을 수정하세요:', comment.content);
         if (!newContent || newContent.trim() === comment.content) return;
 
         try {
+            // Show loading indicator on the edit button
+            const editBtn = document.querySelector(`.comment[data-comment-id="${commentId}"] .edit-btn, .comment-reply[data-comment-id="${commentId}"] .edit-btn`);
+            if (editBtn) {
+                editBtn.disabled = true;
+                editBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 처리 중...';
+            }
+            
             const updateData = {
                 content: newContent.trim(),
                 authorId: comment.authorId
@@ -393,16 +432,23 @@ class CommentsManager {
             // Re-render comments to show the updated comment immediately
             this.renderComments();
             
-            this.showNotification('\ub313\uae00\uc774 \uc218\uc815\ub418\uc5c8\uc2b5\ub2c8\ub2e4!');
+            this.showNotification('댓글이 수정되었습니다!');
             
         } catch (error) {
             console.error('Failed to update comment:', error);
-            this.showNotification('\ub313\uae00 \uc218\uc815\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.', 'error');
+            this.showNotification('댓글 수정에 실패했습니다.', 'error');
+        } finally {
+            // Reset button state (if the button still exists after re-render)
+            const editBtn = document.querySelector(`.comment[data-comment-id="${commentId}"] .edit-btn, .comment-reply[data-comment-id="${commentId}"] .edit-btn`);
+            if (editBtn) {
+                editBtn.disabled = false;
+                editBtn.innerHTML = '<i class="fas fa-edit"></i> 수정';
+            }
         }
     }
 
     async deleteComment(commentId) {
-        if (!confirm('\uc815\ub9d0\ub85c \uc774 \ub313\uae00\uc744 \uc0ad\uc81c\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?')) {
+        if (!confirm('정말로 이 댓글을 삭제하시겠습니까?')) {
             return;
         }
 
@@ -410,6 +456,13 @@ class CommentsManager {
             // Get the comment to be deleted
             const comment = this.comments.find(c => c.id === commentId);
             if (!comment) return;
+            
+            // Show loading indicator on the delete button
+            const deleteBtn = document.querySelector(`.comment[data-comment-id="${commentId}"] .delete-btn, .comment-reply[data-comment-id="${commentId}"] .delete-btn`);
+            if (deleteBtn) {
+                deleteBtn.disabled = true;
+                deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 처리 중...';
+            }
             
             // Get the authorId from the comment
             const authorId = comment.authorId;
@@ -431,11 +484,11 @@ class CommentsManager {
             // Update comment count
             this.updateCommentsCount(this.comments.length);
             
-            this.showNotification('\ub313\uae00\uc774 \uc0ad\uc81c\ub418\uc5c8\uc2b5\ub2c8\ub2e4!');
+            this.showNotification('댓글이 삭제되었습니다!');
             
         } catch (error) {
             console.error('Failed to delete comment:', error);
-            this.showNotification('\ub313\uae00 \uc0ad\uc81c\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.', 'error');
+            this.showNotification('댓글 삭제에 실패했습니다.', 'error');
         }
     }
 
@@ -559,6 +612,13 @@ const commentsStyles = `
     color: #6b7280;
 }
 
+.comment-edited {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    font-style: italic;
+    margin-left: 0.5rem;
+}
+
 .comment-text {
     color: #4b5563;
     line-height: 1.6;
@@ -592,6 +652,11 @@ const commentsStyles = `
 .comment-action.delete-btn:hover {
     color: #dc2626;
     background-color: #fef2f2;
+}
+
+.comment-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .comment-replies {
