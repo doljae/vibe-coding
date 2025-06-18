@@ -51,15 +51,15 @@ class LikeFeatureIntegrationTest {
 
     @BeforeEach
     fun setUp() {
+        // Clear likes repository first
+        if (likeRepository is InMemoryLikeRepository) {
+            (likeRepository as InMemoryLikeRepository).clear()
+        }
+        
         // Clear repositories
         postRepository.findAll().forEach { post -> postRepository.delete(post.id) }
         categoryRepository.findAll().forEach { category -> categoryRepository.delete(category.id) }
         userRepository.findAll().forEach { user -> userRepository.deleteById(user.id) }
-        
-        // Clear likes repository if it's an InMemoryLikeRepository
-        if (likeRepository is InMemoryLikeRepository) {
-            (likeRepository as InMemoryLikeRepository).clear()
-        }
 
         // Create test user
         testUser = User(
