@@ -20,21 +20,20 @@ repositories {
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0")
     
-    testImplementation("org.springframework.boot:spring-boot-starter-test") {
-        exclude(module = "mockito-core")
-    }
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webflux")
     testImplementation("io.mockk:mockk:1.13.11")
-    testImplementation("io.mockk:mockk-agent-jvm:1.13.11") // Explicitly add ByteBuddy agent
+    testImplementation("io.mockk:mockk-agent-jvm:1.13.11")
     testImplementation("io.kotest:kotest-assertions-core:5.8.0")
     testImplementation("io.kotest:kotest-runner-junit5:5.8.0")
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("com.ninja-squad:springmockk:4.0.2")
+    testImplementation("net.bytebuddy:byte-buddy:1.14.13")
+    testImplementation("net.bytebuddy:byte-buddy-agent:1.14.13")
 }
 
 tasks.withType<KotlinCompile>().configureEach {
@@ -47,8 +46,9 @@ tasks.withType<KotlinCompile>().configureEach {
 tasks.withType<Test> {
     useJUnitPlatform()
     
-    // Enable ByteBuddy agent JVM arguments for Mockk
+    // ByteBuddy 에이전트 JVM 인자 설정
     jvmArgs = listOf(
+        "-javaagent:${project.rootDir}/gradle/wrapper/byte-buddy-agent-1.14.13.jar",
         "--add-opens=java.base/java.lang=ALL-UNNAMED",
         "--add-opens=java.base/java.io=ALL-UNNAMED",
         "--add-opens=java.base/java.util=ALL-UNNAMED",
