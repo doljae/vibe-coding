@@ -2,9 +2,14 @@ package com.example.vibecoding.domain.comment
 
 import com.example.vibecoding.domain.post.PostId
 import com.example.vibecoding.domain.user.UserId
+import io.kotest.assertions.throwables.shouldNotThrowAny
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.booleans.shouldBeTrue
+import io.kotest.matchers.booleans.shouldBeFalse
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
-import org.junit.jupiter.api.Assertions.*
 import java.time.LocalDateTime
 
 class CommentTest {
@@ -27,18 +32,18 @@ class CommentTest {
             updatedAt = createdAt
         )
 
-        assertEquals(commentId, comment.id)
-        assertEquals(validContent, comment.content)
-        assertEquals(authorId, comment.authorId)
-        assertEquals(postId, comment.postId)
-        assertNull(comment.parentCommentId)
-        assertEquals(createdAt, comment.createdAt)
-        assertEquals(createdAt, comment.updatedAt)
+        comment.id shouldBe commentId
+        comment.content shouldBe validContent
+        comment.authorId shouldBe authorId
+        comment.postId shouldBe postId
+        comment.parentCommentId.shouldBeNull()
+        comment.createdAt shouldBe createdAt
+        comment.updatedAt shouldBe createdAt
     }
 
     @Test
     fun `should throw exception when content is blank`() {
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             Comment(
                 id = commentId,
                 content = "",
@@ -53,7 +58,7 @@ class CommentTest {
 
     @Test
     fun `should throw exception when content is only whitespace`() {
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             Comment(
                 id = commentId,
                 content = "   ",
@@ -70,7 +75,7 @@ class CommentTest {
     fun `should throw exception when content exceeds maximum length`() {
         val longContent = "a".repeat(Comment.MAX_CONTENT_LENGTH + 1)
         
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             Comment(
                 id = commentId,
                 content = longContent,
@@ -97,7 +102,7 @@ class CommentTest {
             updatedAt = createdAt
         )
 
-        assertEquals(maxLengthContent, comment.content)
+        comment.content shouldBe maxLengthContent
     }
 
     @Test
@@ -115,9 +120,9 @@ class CommentTest {
         val newContent = "Updated comment content"
         val updatedComment = comment.updateContent(newContent)
 
-        assertEquals(newContent, updatedComment.content)
-        assertEquals(createdAt, updatedComment.createdAt) // createdAt should not change
-        assertTrue(updatedComment.updatedAt.isAfter(createdAt)) // updatedAt should be updated
+        updatedComment.content shouldBe newContent
+        updatedComment.createdAt shouldBe createdAt // createdAt should not change
+        (updatedComment.updatedAt > createdAt).shouldBeTrue() // updatedAt should be updated
     }
 
     @Test
@@ -132,7 +137,7 @@ class CommentTest {
             updatedAt = createdAt
         )
 
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             comment.updateContent("")
         }
     }
@@ -149,8 +154,8 @@ class CommentTest {
             updatedAt = createdAt
         )
 
-        assertTrue(rootComment.isRootComment())
-        assertFalse(rootComment.isReply())
+        rootComment.isRootComment().shouldBeTrue()
+        rootComment.isReply().shouldBeFalse()
     }
 
     @Test
@@ -166,9 +171,9 @@ class CommentTest {
             updatedAt = createdAt
         )
 
-        assertFalse(replyComment.isRootComment())
-        assertTrue(replyComment.isReply())
-        assertEquals(parentCommentId, replyComment.parentCommentId)
+        replyComment.isRootComment().shouldBeFalse()
+        replyComment.isReply().shouldBeTrue()
+        replyComment.parentCommentId shouldBe parentCommentId
     }
 
     @Test
@@ -180,12 +185,12 @@ class CommentTest {
             postId = postId
         )
 
-        assertEquals(commentId, comment.id)
-        assertEquals(validContent, comment.content)
-        assertEquals(authorId, comment.authorId)
-        assertEquals(postId, comment.postId)
-        assertNull(comment.parentCommentId)
-        assertTrue(comment.isRootComment())
+        comment.id shouldBe commentId
+        comment.content shouldBe validContent
+        comment.authorId shouldBe authorId
+        comment.postId shouldBe postId
+        comment.parentCommentId.shouldBeNull()
+        comment.isRootComment().shouldBeTrue()
     }
 
     @Test
@@ -205,12 +210,12 @@ class CommentTest {
             parentComment = parentComment
         )
 
-        assertEquals(commentId, reply.id)
-        assertEquals(validContent, reply.content)
-        assertEquals(authorId, reply.authorId)
-        assertEquals(postId, reply.postId)
-        assertEquals(parentComment.id, reply.parentCommentId)
-        assertTrue(reply.isReply())
+        reply.id shouldBe commentId
+        reply.content shouldBe validContent
+        reply.authorId shouldBe authorId
+        reply.postId shouldBe postId
+        reply.parentCommentId shouldBe parentComment.id
+        reply.isReply().shouldBeTrue()
     }
 
     @Test
@@ -230,7 +235,7 @@ class CommentTest {
             parentComment = rootComment
         )
 
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             Comment.createReply(
                 id = commentId,
                 content = validContent,
@@ -251,7 +256,7 @@ class CommentTest {
             postId = differentPostId
         )
 
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             Comment.createReply(
                 id = commentId,
                 content = validContent,
@@ -282,7 +287,7 @@ class CommentTest {
         )
 
         // Should not throw exception
-        assertDoesNotThrow {
+        shouldNotThrowAny {
             reply.validateAsReplyTo(parentComment)
         }
     }
@@ -292,7 +297,7 @@ class CommentTest {
         val id1 = CommentId.generate()
         val id2 = CommentId.generate()
         
-        assertNotEquals(id1, id2)
+        id1 shouldNotBe id2
     }
 
     @Test
@@ -300,12 +305,12 @@ class CommentTest {
         val uuid = java.util.UUID.randomUUID()
         val commentId = CommentId.from(uuid.toString())
         
-        assertEquals(uuid, commentId.value)
+        commentId.value shouldBe uuid
     }
 
     @Test
     fun `CommentId should throw exception for invalid string`() {
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             CommentId.from("invalid-uuid")
         }
     }
