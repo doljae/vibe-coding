@@ -4,9 +4,14 @@ import com.example.vibecoding.domain.comment.Comment
 import com.example.vibecoding.domain.comment.CommentId
 import com.example.vibecoding.domain.post.PostId
 import com.example.vibecoding.domain.user.UserId
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.collections.shouldNotContain
+import io.kotest.matchers.booleans.shouldBeTrue
+import io.kotest.matchers.booleans.shouldBeFalse
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Assertions.*
 
 class InMemoryCommentRepositoryTest {
 
@@ -31,8 +36,8 @@ class InMemoryCommentRepositoryTest {
         val savedComment = repository.save(comment)
         val foundComment = repository.findById(comment.id)
 
-        assertEquals(comment, savedComment)
-        assertEquals(comment, foundComment)
+        savedComment shouldBe comment
+        foundComment shouldBe comment
     }
 
     @Test
@@ -40,7 +45,7 @@ class InMemoryCommentRepositoryTest {
         val nonExistentId = CommentId.generate()
         val foundComment = repository.findById(nonExistentId)
 
-        assertNull(foundComment)
+        foundComment.shouldBeNull()
     }
 
     @Test
@@ -70,10 +75,10 @@ class InMemoryCommentRepositoryTest {
 
         val commentsForPost = repository.findByPostId(postId)
 
-        assertEquals(2, commentsForPost.size)
-        assertTrue(commentsForPost.contains(comment1))
-        assertTrue(commentsForPost.contains(comment2))
-        assertFalse(commentsForPost.contains(differentPostComment))
+        commentsForPost.size shouldBe 2
+        commentsForPost shouldContain comment1
+        commentsForPost shouldContain comment2
+        commentsForPost shouldNotContain differentPostComment
     }
 
     @Test
@@ -97,8 +102,8 @@ class InMemoryCommentRepositoryTest {
 
         val rootComments = repository.findRootCommentsByPostId(postId)
 
-        assertEquals(1, rootComments.size)
-        assertEquals(rootComment, rootComments[0])
+        rootComments.size shouldBe 1
+        rootComments[0] shouldBe rootComment
     }
 
     @Test
@@ -130,9 +135,9 @@ class InMemoryCommentRepositoryTest {
 
         val replies = repository.findRepliesByParentCommentId(parentComment.id)
 
-        assertEquals(2, replies.size)
-        assertTrue(replies.contains(reply1))
-        assertTrue(replies.contains(reply2))
+        replies.size shouldBe 2
+        replies shouldContain reply1
+        replies shouldContain reply2
     }
 
     @Test
@@ -145,13 +150,13 @@ class InMemoryCommentRepositoryTest {
         )
 
         repository.save(comment)
-        assertTrue(repository.existsById(comment.id))
+        repository.existsById(comment.id).shouldBeTrue()
 
         val deleted = repository.deleteById(comment.id)
 
-        assertTrue(deleted)
-        assertFalse(repository.existsById(comment.id))
-        assertNull(repository.findById(comment.id))
+        deleted.shouldBeTrue()
+        repository.existsById(comment.id).shouldBeFalse()
+        repository.findById(comment.id).shouldBeNull()
     }
 
     @Test
@@ -159,7 +164,7 @@ class InMemoryCommentRepositoryTest {
         val nonExistentId = CommentId.generate()
         val deleted = repository.deleteById(nonExistentId)
 
-        assertFalse(deleted)
+        deleted.shouldBeFalse()
     }
 
     @Test
@@ -171,13 +176,13 @@ class InMemoryCommentRepositoryTest {
             postId = postId
         )
 
-        assertFalse(repository.existsById(comment.id))
+        repository.existsById(comment.id).shouldBeFalse()
 
         repository.save(comment)
-        assertTrue(repository.existsById(comment.id))
+        repository.existsById(comment.id).shouldBeTrue()
 
         repository.deleteById(comment.id)
-        assertFalse(repository.existsById(comment.id))
+        repository.existsById(comment.id).shouldBeFalse()
     }
 
     @Test
@@ -208,7 +213,7 @@ class InMemoryCommentRepositoryTest {
 
         val count = repository.countByPostId(postId)
 
-        assertEquals(3, count) // 2 root comments + 1 reply
+        count shouldBe 3 // 2 root comments + 1 reply
     }
 
     @Test
@@ -216,7 +221,7 @@ class InMemoryCommentRepositoryTest {
         val emptyPostId = PostId.generate()
         val count = repository.countByPostId(emptyPostId)
 
-        assertEquals(0, count)
+        count shouldBe 0
     }
 
     @Test
@@ -240,9 +245,9 @@ class InMemoryCommentRepositoryTest {
 
         val allComments = repository.findAll()
 
-        assertEquals(2, allComments.size)
-        assertEquals(comment1, allComments[0]) // Should be first due to earlier creation time
-        assertEquals(comment2, allComments[1])
+        allComments.size shouldBe 2
+        allComments[0] shouldBe comment1 // Should be first due to earlier creation time
+        allComments[1] shouldBe comment2
     }
 
     @Test
@@ -262,10 +267,10 @@ class InMemoryCommentRepositoryTest {
 
         repository.save(comment1)
         repository.save(comment2)
-        assertEquals(2, repository.findAll().size)
+        repository.findAll().size shouldBe 2
 
         repository.clear()
-        assertEquals(0, repository.findAll().size)
+        repository.findAll().size shouldBe 0
     }
 
     @Test
@@ -282,7 +287,7 @@ class InMemoryCommentRepositoryTest {
         repository.save(updatedComment)
 
         val foundComment = repository.findById(comment.id)
-        assertEquals("Updated content", foundComment?.content)
+        foundComment?.content shouldBe "Updated content"
     }
 
     @Test
@@ -306,9 +311,8 @@ class InMemoryCommentRepositoryTest {
 
         val comments = repository.findByPostId(postId)
 
-        assertEquals(2, comments.size)
-        assertEquals(comment1, comments[0])
-        assertEquals(comment2, comments[1])
+        comments.size shouldBe 2
+        comments[0] shouldBe comment1
+        comments[1] shouldBe comment2
     }
 }
-

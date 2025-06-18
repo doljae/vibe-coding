@@ -2,13 +2,15 @@ package com.example.vibecoding.infrastructure.repository
 
 import com.example.vibecoding.domain.user.User
 import com.example.vibecoding.domain.user.UserId
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.booleans.shouldBeTrue
+import io.kotest.matchers.booleans.shouldBeFalse
+import io.kotest.matchers.collections.shouldBeEmpty
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.LocalDateTime
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 class InMemoryUserRepositoryTest {
 
@@ -35,8 +37,8 @@ class InMemoryUserRepositoryTest {
         val savedUser = repository.save(user)
         val foundUser = repository.findById(user.id)
 
-        assertEquals(savedUser, foundUser)
-        assertEquals(user.username, foundUser?.username)
+        foundUser shouldBe savedUser
+        foundUser?.username shouldBe user.username
     }
 
     @Test
@@ -44,7 +46,7 @@ class InMemoryUserRepositoryTest {
         val nonExistentId = UserId.generate()
         val foundUser = repository.findById(nonExistentId)
 
-        assertNull(foundUser)
+        foundUser.shouldBeNull()
     }
 
     @Test
@@ -63,14 +65,14 @@ class InMemoryUserRepositoryTest {
         repository.save(user)
         val foundUser = repository.findByUsername("testuser")
 
-        assertEquals(user, foundUser)
+        foundUser shouldBe user
     }
 
     @Test
     fun `should return null when user not found by username`() {
         val foundUser = repository.findByUsername("nonexistent")
 
-        assertNull(foundUser)
+        foundUser.shouldBeNull()
     }
 
     @Test
@@ -89,14 +91,14 @@ class InMemoryUserRepositoryTest {
         repository.save(user)
         val foundUser = repository.findByEmail("test@example.com")
 
-        assertEquals(user, foundUser)
+        foundUser shouldBe user
     }
 
     @Test
     fun `should return null when user not found by email`() {
         val foundUser = repository.findByEmail("nonexistent@example.com")
 
-        assertNull(foundUser)
+        foundUser.shouldBeNull()
     }
 
     @Test
@@ -126,9 +128,9 @@ class InMemoryUserRepositoryTest {
 
         val allUsers = repository.findAll()
 
-        assertEquals(2, allUsers.size)
-        assertTrue(allUsers.contains(user1))
-        assertTrue(allUsers.contains(user2))
+        allUsers.size shouldBe 2
+        allUsers shouldContain user1
+        allUsers shouldContain user2
     }
 
     @Test
@@ -148,8 +150,8 @@ class InMemoryUserRepositoryTest {
         val deleted = repository.deleteById(user.id)
         val foundUser = repository.findById(user.id)
 
-        assertTrue(deleted)
-        assertNull(foundUser)
+        deleted.shouldBeTrue()
+        foundUser.shouldBeNull()
     }
 
     @Test
@@ -157,7 +159,7 @@ class InMemoryUserRepositoryTest {
         val nonExistentId = UserId.generate()
         val deleted = repository.deleteById(nonExistentId)
 
-        assertFalse(deleted)
+        deleted.shouldBeFalse()
     }
 
     @Test
@@ -175,8 +177,8 @@ class InMemoryUserRepositoryTest {
 
         repository.save(user)
 
-        assertTrue(repository.existsByUsername("testuser"))
-        assertFalse(repository.existsByUsername("nonexistent"))
+        repository.existsByUsername("testuser").shouldBeTrue()
+        repository.existsByUsername("nonexistent").shouldBeFalse()
     }
 
     @Test
@@ -194,8 +196,8 @@ class InMemoryUserRepositoryTest {
 
         repository.save(user)
 
-        assertTrue(repository.existsByEmail("test@example.com"))
-        assertFalse(repository.existsByEmail("nonexistent@example.com"))
+        repository.existsByEmail("test@example.com").shouldBeTrue()
+        repository.existsByEmail("nonexistent@example.com").shouldBeFalse()
     }
 
     @Test
@@ -216,7 +218,7 @@ class InMemoryUserRepositoryTest {
         repository.save(updatedUser)
 
         val foundUser = repository.findById(user.id)
-        assertEquals("Updated Name", foundUser?.displayName)
+        foundUser?.displayName shouldBe "Updated Name"
     }
 
     @Test
@@ -233,11 +235,10 @@ class InMemoryUserRepositoryTest {
         )
 
         repository.save(user)
-        assertEquals(1, repository.size())
+        repository.size() shouldBe 1
 
         repository.clear()
-        assertEquals(0, repository.size())
-        assertTrue(repository.findAll().isEmpty())
+        repository.size() shouldBe 0
+        repository.findAll().shouldBeEmpty()
     }
 }
-

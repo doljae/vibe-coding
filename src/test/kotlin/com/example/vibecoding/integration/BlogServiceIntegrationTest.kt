@@ -4,6 +4,8 @@ import com.example.vibecoding.presentation.dto.CreateCategoryRequest
 import com.example.vibecoding.presentation.dto.CreatePostRequest
 import com.example.vibecoding.presentation.dto.CreateUserRequest
 import com.fasterxml.jackson.databind.ObjectMapper
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.nulls.shouldNotBeNull
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -11,8 +13,6 @@ import org.springframework.boot.test.web.client.TestRestTemplate
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 
 /**
  * Integration tests for the complete blog service API
@@ -46,12 +46,12 @@ class BlogServiceIntegrationTest {
             String::class.java
         )
         
-        assertEquals(HttpStatus.CREATED, categoryResult.statusCode)
-        assertNotNull(categoryResult.body)
+        categoryResult.statusCode shouldBe HttpStatus.CREATED
+        categoryResult.body.shouldNotBeNull()
         
         val categoryResponse = objectMapper.readTree(categoryResult.body)
         val categoryId = categoryResponse.get("id").asText()
-        assertEquals("Technology", categoryResponse.get("name").asText())
+        categoryResponse.get("name").asText() shouldBe "Technology"
 
         // 2. Create a user
         val userRequest = CreateUserRequest(
@@ -67,12 +67,12 @@ class BlogServiceIntegrationTest {
             String::class.java
         )
         
-        assertEquals(HttpStatus.CREATED, userResult.statusCode)
-        assertNotNull(userResult.body)
+        userResult.statusCode shouldBe HttpStatus.CREATED
+        userResult.body.shouldNotBeNull()
         
         val userResponse = objectMapper.readTree(userResult.body)
         val userId = userResponse.get("id").asText()
-        assertEquals("testuser", userResponse.get("username").asText())
+        userResponse.get("username").asText() shouldBe "testuser"
 
         // 3. Create a post
         val postRequest = CreatePostRequest(
@@ -88,12 +88,12 @@ class BlogServiceIntegrationTest {
             String::class.java
         )
         
-        assertEquals(HttpStatus.CREATED, postResult.statusCode)
-        assertNotNull(postResult.body)
+        postResult.statusCode shouldBe HttpStatus.CREATED
+        postResult.body.shouldNotBeNull()
         
         val postResponse = objectMapper.readTree(postResult.body)
         val postId = postResponse.get("id").asText()
-        assertEquals("My First Post", postResponse.get("title").asText())
+        postResponse.get("title").asText() shouldBe "My First Post"
 
         // 4. Get all posts and verify our post is there
         val allPostsResult = restTemplate.getForEntity(
@@ -101,12 +101,12 @@ class BlogServiceIntegrationTest {
             String::class.java
         )
         
-        assertEquals(HttpStatus.OK, allPostsResult.statusCode)
-        assertNotNull(allPostsResult.body)
+        allPostsResult.statusCode shouldBe HttpStatus.OK
+        allPostsResult.body.shouldNotBeNull()
         
         val allPostsResponse = objectMapper.readTree(allPostsResult.body)
-        assertEquals(1, allPostsResponse.size())
-        assertEquals(postId, allPostsResponse[0].get("id").asText())
+        allPostsResponse.size() shouldBe 1
+        allPostsResponse[0].get("id").asText() shouldBe postId
 
         // 5. Get specific post
         val specificPostResult = restTemplate.getForEntity(
@@ -114,13 +114,13 @@ class BlogServiceIntegrationTest {
             String::class.java
         )
         
-        assertEquals(HttpStatus.OK, specificPostResult.statusCode)
-        assertNotNull(specificPostResult.body)
+        specificPostResult.statusCode shouldBe HttpStatus.OK
+        specificPostResult.body.shouldNotBeNull()
         
         val specificPostResponse = objectMapper.readTree(specificPostResult.body)
-        assertEquals(postId, specificPostResponse.get("id").asText())
-        assertEquals("My First Post", specificPostResponse.get("title").asText())
-        assertEquals("This is the content of my first post", specificPostResponse.get("content").asText())
+        specificPostResponse.get("id").asText() shouldBe postId
+        specificPostResponse.get("title").asText() shouldBe "My First Post"
+        specificPostResponse.get("content").asText() shouldBe "This is the content of my first post"
 
         // 6. Get specific user
         val specificUserResult = restTemplate.getForEntity(
@@ -128,12 +128,12 @@ class BlogServiceIntegrationTest {
             String::class.java
         )
         
-        assertEquals(HttpStatus.OK, specificUserResult.statusCode)
-        assertNotNull(specificUserResult.body)
+        specificUserResult.statusCode shouldBe HttpStatus.OK
+        specificUserResult.body.shouldNotBeNull()
         
         val specificUserResponse = objectMapper.readTree(specificUserResult.body)
-        assertEquals(userId, specificUserResponse.get("id").asText())
-        assertEquals("testuser", specificUserResponse.get("username").asText())
+        specificUserResponse.get("id").asText() shouldBe userId
+        specificUserResponse.get("username").asText() shouldBe "testuser"
 
         // 7. Get specific category
         val specificCategoryResult = restTemplate.getForEntity(
@@ -141,12 +141,12 @@ class BlogServiceIntegrationTest {
             String::class.java
         )
         
-        assertEquals(HttpStatus.OK, specificCategoryResult.statusCode)
-        assertNotNull(specificCategoryResult.body)
+        specificCategoryResult.statusCode shouldBe HttpStatus.OK
+        specificCategoryResult.body.shouldNotBeNull()
         
         val specificCategoryResponse = objectMapper.readTree(specificCategoryResult.body)
-        assertEquals(categoryId, specificCategoryResponse.get("id").asText())
-        assertEquals("Technology", specificCategoryResponse.get("name").asText())
+        specificCategoryResponse.get("id").asText() shouldBe categoryId
+        specificCategoryResponse.get("name").asText() shouldBe "Technology"
     }
 
     @Test
@@ -163,7 +163,7 @@ class BlogServiceIntegrationTest {
             String::class.java
         )
         
-        assertEquals(HttpStatus.BAD_REQUEST, categoryResult.statusCode)
+        categoryResult.statusCode shouldBe HttpStatus.BAD_REQUEST
 
         // Test invalid user creation
         val invalidUserRequest = CreateUserRequest(
@@ -178,7 +178,7 @@ class BlogServiceIntegrationTest {
             String::class.java
         )
         
-        assertEquals(HttpStatus.BAD_REQUEST, userResult.statusCode)
+        userResult.statusCode shouldBe HttpStatus.BAD_REQUEST
     }
 
     @Test
@@ -190,14 +190,14 @@ class BlogServiceIntegrationTest {
             createUrl("/api/categories/$nonExistentId"),
             String::class.java
         )
-        assertEquals(HttpStatus.NOT_FOUND, categoryResult.statusCode)
+        categoryResult.statusCode shouldBe HttpStatus.NOT_FOUND
 
         // Test post not found
         val postResult = restTemplate.getForEntity(
             createUrl("/api/posts/$nonExistentId"),
             String::class.java
         )
-        assertEquals(HttpStatus.NOT_FOUND, postResult.statusCode)
+        postResult.statusCode shouldBe HttpStatus.NOT_FOUND
     }
 
     @Test
@@ -208,11 +208,11 @@ class BlogServiceIntegrationTest {
             String::class.java
         )
         
-        assertEquals(HttpStatus.OK, usernameResult.statusCode)
-        assertNotNull(usernameResult.body)
+        usernameResult.statusCode shouldBe HttpStatus.OK
+        usernameResult.body.shouldNotBeNull()
         
         val usernameResponse = objectMapper.readTree(usernameResult.body)
-        assertEquals(true, usernameResponse.get("available").asBoolean())
+        usernameResponse.get("available").asBoolean() shouldBe true
 
         // Check available email
         val emailResult = restTemplate.getForEntity(
@@ -220,11 +220,10 @@ class BlogServiceIntegrationTest {
             String::class.java
         )
         
-        assertEquals(HttpStatus.OK, emailResult.statusCode)
-        assertNotNull(emailResult.body)
+        emailResult.statusCode shouldBe HttpStatus.OK
+        emailResult.body.shouldNotBeNull()
         
         val emailResponse = objectMapper.readTree(emailResult.body)
-        assertEquals(true, emailResponse.get("available").asBoolean())
+        emailResponse.get("available").asBoolean() shouldBe true
     }
 }
-

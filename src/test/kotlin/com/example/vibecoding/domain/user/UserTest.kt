@@ -1,10 +1,10 @@
 package com.example.vibecoding.domain.user
 
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import java.time.LocalDateTime
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
 
 class UserTest {
 
@@ -21,10 +21,10 @@ class UserTest {
             updatedAt = now
         )
 
-        assertEquals("testuser", user.username)
-        assertEquals("test@example.com", user.email)
-        assertEquals("Test User", user.displayName)
-        assertEquals("This is a test bio", user.bio)
+        user.username shouldBe "testuser"
+        user.email shouldBe "test@example.com"
+        user.displayName shouldBe "Test User"
+        user.bio shouldBe "This is a test bio"
     }
 
     @Test
@@ -40,14 +40,14 @@ class UserTest {
             updatedAt = now
         )
 
-        assertEquals(null, user.bio)
+        user.bio shouldBe null
     }
 
     @Test
     fun `should throw exception when username is blank`() {
         val now = LocalDateTime.now()
         
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             User(
                 id = UserId.generate(),
                 username = "",
@@ -64,7 +64,7 @@ class UserTest {
     fun `should throw exception when username is too short`() {
         val now = LocalDateTime.now()
         
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             User(
                 id = UserId.generate(),
                 username = "ab",
@@ -82,7 +82,7 @@ class UserTest {
         val now = LocalDateTime.now()
         val longUsername = "a".repeat(51)
         
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             User(
                 id = UserId.generate(),
                 username = longUsername,
@@ -99,7 +99,7 @@ class UserTest {
     fun `should throw exception when username contains invalid characters`() {
         val now = LocalDateTime.now()
         
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             User(
                 id = UserId.generate(),
                 username = "test-user",
@@ -116,7 +116,7 @@ class UserTest {
     fun `should throw exception when email is blank`() {
         val now = LocalDateTime.now()
         
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             User(
                 id = UserId.generate(),
                 username = "testuser",
@@ -133,7 +133,7 @@ class UserTest {
     fun `should throw exception when email format is invalid`() {
         val now = LocalDateTime.now()
         
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             User(
                 id = UserId.generate(),
                 username = "testuser",
@@ -150,7 +150,7 @@ class UserTest {
     fun `should throw exception when display name is blank`() {
         val now = LocalDateTime.now()
         
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             User(
                 id = UserId.generate(),
                 username = "testuser",
@@ -168,7 +168,7 @@ class UserTest {
         val now = LocalDateTime.now()
         val longDisplayName = "a".repeat(101)
         
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             User(
                 id = UserId.generate(),
                 username = "testuser",
@@ -186,7 +186,7 @@ class UserTest {
         val now = LocalDateTime.now()
         val longBio = "a".repeat(501)
         
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             User(
                 id = UserId.generate(),
                 username = "testuser",
@@ -214,8 +214,8 @@ class UserTest {
 
         val updatedUser = user.updateDisplayName("New Display Name")
 
-        assertEquals("New Display Name", updatedUser.displayName)
-        assertNotEquals(user.updatedAt, updatedUser.updatedAt)
+        updatedUser.displayName shouldBe "New Display Name"
+        updatedUser.updatedAt shouldNotBe user.updatedAt
     }
 
     @Test
@@ -233,8 +233,8 @@ class UserTest {
 
         val updatedUser = user.updateBio("New bio")
 
-        assertEquals("New bio", updatedUser.bio)
-        assertNotEquals(user.updatedAt, updatedUser.updatedAt)
+        updatedUser.bio shouldBe "New bio"
+        updatedUser.updatedAt shouldNotBe user.updatedAt
     }
 
     @Test
@@ -252,8 +252,8 @@ class UserTest {
 
         val updatedUser = user.updateEmail("newemail@example.com")
 
-        assertEquals("newemail@example.com", updatedUser.email)
-        assertNotEquals(user.updatedAt, updatedUser.updatedAt)
+        updatedUser.email shouldBe "newemail@example.com"
+        updatedUser.updatedAt shouldNotBe user.updatedAt
     }
 
     @Test
@@ -269,7 +269,7 @@ class UserTest {
             updatedAt = now
         )
 
-        assertThrows<IllegalArgumentException> {
+        shouldThrow<IllegalArgumentException> {
             user.updateEmail("invalid-email")
         }
     }
@@ -279,7 +279,7 @@ class UserTest {
         val id1 = UserId.generate()
         val id2 = UserId.generate()
 
-        assertNotEquals(id1, id2)
+        id1 shouldNotBe id2
     }
 
     @Test
@@ -287,7 +287,6 @@ class UserTest {
         val uuid = "550e8400-e29b-41d4-a716-446655440000"
         val userId = UserId.from(uuid)
 
-        assertEquals(uuid, userId.value.toString())
+        userId.value.toString() shouldBe uuid
     }
 }
-

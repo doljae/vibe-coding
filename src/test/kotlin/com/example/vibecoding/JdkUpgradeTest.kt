@@ -1,8 +1,8 @@
 package com.example.vibecoding
 
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.booleans.shouldBeTrue
 import org.junit.jupiter.api.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 /**
  * Simple test to verify JDK 21 and Kotlin 2.x compatibility
@@ -19,19 +19,19 @@ class JdkUpgradeTest {
             is Int -> obj
             else -> -1
         }
-        assertEquals(13, result)
+        result shouldBe 13
         
         // Test Kotlin 2.x features
         val numbers = listOf(1, 2, 3, 4, 5)
         val sum = numbers.sum()
-        assertEquals(15, sum)
+        sum shouldBe 15
         
         // Test virtual threads (JDK 21 feature)
         val thread = Thread.ofVirtual().name("virtual-thread").start {
             println("Running in a virtual thread")
         }
         thread.join()
-        assertTrue(true, "Virtual thread completed successfully")
+        true.shouldBeTrue() // Virtual thread completed successfully
     }
 }
 
