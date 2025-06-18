@@ -119,7 +119,10 @@ const api = {
             const response = await fetch(url, config);
             
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorData = await response.json().catch(() => null);
+                const errorMessage = errorData?.message || `HTTP error! status: ${response.status}`;
+                console.error('API Error:', errorMessage, errorData);
+                throw new Error(errorMessage);
             }
 
             // Handle empty responses
@@ -303,7 +306,7 @@ async function loadRecentPosts() {
     if (!container) return;
 
     try {
-        utils.showLoading(container, '최근 게시글을 불러��는 중...');
+        utils.showLoading(container, '최근 게시글을 불러���는 중...');
         
         const posts = await api.posts.getAll();
         

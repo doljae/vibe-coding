@@ -64,3 +64,5 @@ logs/
 *.kotlin_metadata
 *.kotlin_builtins
 
+### Images ###
+uploads/

@@ -127,8 +127,7 @@ class PostDetailPage {
                             수정
                         </a>
                         <button onclick="postDetailPage.deletePost()" class="btn btn-danger btn-sm">
-                            <i class="fas fa-trash"></i>
-                            삭제
+                            <i class="fas fa-trash"></i> \uc0ad\uc81c
                         </button>
                     </div>
                 </footer>
@@ -230,6 +229,13 @@ class PostDetailPage {
         }
 
         try {
+            // Show loading state
+            const deleteBtn = document.querySelector('.post-management .btn-danger');
+            if (deleteBtn) {
+                deleteBtn.disabled = true;
+                deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 삭제 중...';
+            }
+            
             await api.posts.delete(this.postId);
             this.showNotification('게시글이 삭제되었습니다.');
             
@@ -240,7 +246,14 @@ class PostDetailPage {
             
         } catch (error) {
             console.error('Failed to delete post:', error);
-            this.showNotification('게시글 삭제에 실패했습니다.');
+            this.showNotification('게시글 삭제에 실패했습니다.', 'error');
+            
+            // Reset button state
+            const deleteBtn = document.querySelector('.post-management .btn-danger');
+            if (deleteBtn) {
+                deleteBtn.disabled = false;
+                deleteBtn.innerHTML = '<i class="fas fa-trash"></i> 삭제';
+            }
         }
     }
 
