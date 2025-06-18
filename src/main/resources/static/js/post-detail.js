@@ -127,8 +127,7 @@ class PostDetailPage {
                             수정
                         </a>
                         <button onclick="postDetailPage.deletePost()" class="btn btn-danger btn-sm">
-                            <i class="fas fa-trash"></i>
-                            삭제
+                            <i class="fas fa-trash"></i> \uc0ad\uc81c
                         </button>
                     </div>
                 </footer>
@@ -225,13 +224,20 @@ class PostDetailPage {
     }
 
     async deletePost() {
-        if (!confirm('정말로 이 게시글을 삭제하시겠습니까?')) {
+        if (!confirm('\uc815\ub9d0\ub85c \uc774 \uac8c\uc2dc\uae00\uc744 \uc0ad\uc81c\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?')) {
             return;
         }
 
         try {
+            // Show loading state
+            const deleteBtn = document.querySelector('.post-management .btn-danger');
+            if (deleteBtn) {
+                deleteBtn.disabled = true;
+                deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> \uc0ad\uc81c \uc911...';
+            }
+            
             await api.posts.delete(this.postId);
-            this.showNotification('게시글이 삭제되었습니다.');
+            this.showNotification('\uac8c\uc2dc\uae00\uc774 \uc0ad\uc81c\ub418\uc5c8\uc2b5\ub2c8\ub2e4.');
             
             // Redirect to posts list after a short delay
             setTimeout(() => {
@@ -240,7 +246,14 @@ class PostDetailPage {
             
         } catch (error) {
             console.error('Failed to delete post:', error);
-            this.showNotification('게시글 삭제에 실패했습니다.');
+            this.showNotification('\uac8c\uc2dc\uae00 \uc0ad\uc81c\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.', 'error');
+            
+            // Reset button state
+            const deleteBtn = document.querySelector('.post-management .btn-danger');
+            if (deleteBtn) {
+                deleteBtn.disabled = false;
+                deleteBtn.innerHTML = '<i class="fas fa-trash"></i> \uc0ad\uc81c';
+            }
         }
     }
 

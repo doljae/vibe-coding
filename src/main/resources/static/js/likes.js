@@ -65,7 +65,7 @@ class LikesManager {
         // Check if user name is set, prompt if not
         let authorName = storage.get('authorName');
         if (!authorName || authorName.startsWith('user-')) {
-            authorName = prompt('좋아요를 누르려면 이름을 입력해주세요:');
+            authorName = prompt('\uc88b\uc544\uc694\ub97c \ub204\ub974\ub824\uba74 \uc774\ub984\uc744 \uc785\ub825\ud574\uc8fc\uc138\uc694:');
             if (!authorName || authorName.trim() === '') {
                 return; // User cancelled or entered empty name
             }
@@ -79,6 +79,7 @@ class LikesManager {
         likeBtn.classList.add('loading');
 
         try {
+            // Make sure we're using the correct endpoint
             const response = await api.likes.toggle(postId, this.currentAuthorName);
             const isLiked = response.isLiked;
 
@@ -90,14 +91,14 @@ class LikesManager {
             
             // Show feedback
             if (isLiked) {
-                this.showLikeFeedback('좋아요를 눌렀습니다! ❤️');
+                this.showLikeFeedback('\uc88b\uc544\uc694\ub97c \ub20c\ub800\uc2b5\ub2c8\ub2e4! \u2764\ufe0f');
             } else {
-                this.showLikeFeedback('좋아요를 취소했습니다.');
+                this.showLikeFeedback('\uc88b\uc544\uc694\ub97c \ucde8\uc18c\ud588\uc2b5\ub2c8\ub2e4.');
             }
 
         } catch (error) {
             console.error('Failed to toggle like:', error);
-            this.showLikeFeedback('좋아요 처리에 실패했습니다.', 'error');
+            this.showLikeFeedback('\uc88b\uc544\uc694 \ucc98\ub9ac\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.', 'error');
         } finally {
             likeBtn.disabled = false;
             likeBtn.classList.remove('loading');
