@@ -47,9 +47,9 @@ class LikeFeatureIntegrationTest {
     @BeforeEach
     fun setUp() {
         // Clear repositories
-        postRepository.findAll().forEach { postRepository.deleteById(it.id) }
-        categoryRepository.findAll().forEach { categoryRepository.deleteById(it.id) }
-        userRepository.findAll().forEach { userRepository.deleteById(it.id) }
+        postRepository.findAll().forEach { post -> postRepository.delete(post.id) }
+        categoryRepository.findAll().forEach { category -> categoryRepository.delete(category.id) }
+        userRepository.findAll().forEach { user -> userRepository.deleteById(user.id) }
 
         // Create test user
         testUser = User(
@@ -218,4 +218,3 @@ class LikeFeatureIntegrationTest {
             .andExpect(jsonPath("$.length()").value(3))
     }
 }
-

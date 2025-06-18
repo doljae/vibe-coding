@@ -57,9 +57,9 @@ class CommentFeatureIntegrationTest {
     fun setUp() {
         // Clear repositories
         commentRepository.findAll().forEach { commentRepository.deleteById(it.id) }
-        postRepository.findAll().forEach { postRepository.deleteById(it.id) }
-        categoryRepository.findAll().forEach { categoryRepository.deleteById(it.id) }
-        userRepository.findAll().forEach { userRepository.deleteById(it.id) }
+        postRepository.findAll().forEach { post -> postRepository.delete(post.id) }
+        categoryRepository.findAll().forEach { category -> categoryRepository.delete(category.id) }
+        userRepository.findAll().forEach { user -> userRepository.deleteById(user.id) }
 
         // Create test user
         testUser = User(
@@ -228,4 +228,3 @@ class CommentFeatureIntegrationTest {
             .andExpect(jsonPath("$.totalCommentCount").value(0))
     }
 }
-
