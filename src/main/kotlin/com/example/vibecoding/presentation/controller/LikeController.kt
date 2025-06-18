@@ -51,7 +51,7 @@ class LikeController(
             UserId.from(userId)
         )
         
-        return ResponseEntity.noContent().build()
+        return ResponseEntity.ok().build()
     }
 
     /**

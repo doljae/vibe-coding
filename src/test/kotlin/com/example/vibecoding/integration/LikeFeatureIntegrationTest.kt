@@ -123,7 +123,7 @@ class LikeFeatureIntegrationTest {
         mockMvc.perform(
             delete("/api/likes/posts/${testPost.id.value}/users/${testUser.id.value}")
         )
-            .andExpect(status().isNoContent)
+            .andExpect(status().isOk)
 
         // 6. Verify the post now has 0 likes again
         mockMvc.perform(get("/api/likes/posts/${testPost.id.value}/count"))
