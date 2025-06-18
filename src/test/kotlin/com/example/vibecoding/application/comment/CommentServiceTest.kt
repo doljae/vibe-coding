@@ -282,3 +282,4 @@ class CommentServiceTest {
         verify { commentRepository.findRepliesByParentCommentId(rootComment2.id) }
     }
 }
+

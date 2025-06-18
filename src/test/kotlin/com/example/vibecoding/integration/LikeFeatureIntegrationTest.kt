@@ -9,6 +9,7 @@ import com.example.vibecoding.domain.post.PostRepository
 import com.example.vibecoding.domain.user.User
 import com.example.vibecoding.domain.user.UserId
 import com.example.vibecoding.domain.user.UserRepository
+import com.example.vibecoding.domain.post.LikeRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -39,6 +40,9 @@ class LikeFeatureIntegrationTest {
 
     @Autowired
     private lateinit var postRepository: PostRepository
+    
+    @Autowired
+    private lateinit var likeRepository: LikeRepository
 
     private lateinit var testUser: User
     private lateinit var testCategory: Category
@@ -50,6 +54,11 @@ class LikeFeatureIntegrationTest {
         postRepository.findAll().forEach { post -> postRepository.delete(post.id) }
         categoryRepository.findAll().forEach { category -> categoryRepository.delete(category.id) }
         userRepository.findAll().forEach { user -> userRepository.deleteById(user.id) }
+        
+        // Clear likes repository if it's an InMemoryLikeRepository
+        if (likeRepository is com.example.vibecoding.infrastructure.repository.InMemoryLikeRepository) {
+            (likeRepository as com.example.vibecoding.infrastructure.repository.InMemoryLikeRepository).clear()
+        }
 
         // Create test user
         testUser = User(
@@ -105,7 +114,7 @@ class LikeFeatureIntegrationTest {
             .andExpect(jsonPath("$.count").value(1))
 
         // 4. Check if the user has liked the post
-        mockMvc.perform(get("/api/likes/posts/${testPost.id.value}/users/${testUser.id.value}/status"))
+        mockMvc.perform(get("/api/likes/posts/${testPost.id.value}/users/${testUser.username}/status"))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.hasLiked").value(true))
 
@@ -121,7 +130,7 @@ class LikeFeatureIntegrationTest {
             .andExpect(jsonPath("$.count").value(0))
 
         // 7. Check if the user has unliked the post
-        mockMvc.perform(get("/api/likes/posts/${testPost.id.value}/users/${testUser.id.value}/status"))
+        mockMvc.perform(get("/api/likes/posts/${testPost.id.value}/users/${testUser.username}/status"))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.hasLiked").value(false))
     }
